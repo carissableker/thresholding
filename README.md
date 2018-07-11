@@ -4,9 +4,6 @@
 Repository for thresholding code. 
 
 
-## Depends on igraph
-
-
 ## To compile:
 
 Depends on igraph
