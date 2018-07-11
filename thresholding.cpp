@@ -223,6 +223,7 @@ int thresholdSpectral(igraph_t &G_p,
     igraph_vector_init(&values, 0);
     igraph_matrix_t vectors;
     igraph_matrix_init(&vectors, 0, 1);
+	igraph_real_t eigen_value;
     igraph_vector_t eigen_vector;
     igraph_vector_init(&eigen_vector, igraph_matrix_nrow(&vectors));
     std::vector<float> window_differences;
@@ -272,6 +273,10 @@ int thresholdSpectral(igraph_t &G_p,
         // Eigen decomposition for symmetric matrices using LAPACK
         igraph_lapack_dsyevr(&laplacian, IGRAPH_LAPACK_DSYEV_SELECT, 0, 0, 0, 2, 2, 1e-10, &values, &vectors, 0); 
 
+		// output eigen value of interest! 
+		eigen_value = VECTOR(values)[0];
+		std::cout << ", 2nd Eigenvalue: " << eigen_value;
+
         igraph_matrix_get_col(&vectors, &eigen_vector, 0);
 
         igraph_vector_sort(&eigen_vector);
@@ -281,7 +286,7 @@ int thresholdSpectral(igraph_t &G_p,
 
         tol = mean(window_differences) + stdev(window_differences)/2.0;
 		
-		std::cout << ", TOL: " << tol << "\n";
+		std::cout << ", TOL: " << tol;
 
         number_clusters = 1;
         cluster_begin = 0;
@@ -314,10 +319,11 @@ int thresholdSpectral(igraph_t &G_p,
                 //  else already in a cluster so else nothing
             }
         }
+		std::cout << ", Number clusters: " << number_clusters << "\n";
         stat_per_t.push_back(number_clusters);
     }
 
-	std::cout << "Done\n";
+	std::cout << "\nDone\n";
 
     for(int i=0; i<stat_per_t.size(); i++){
         std::cout << vector_t[i] << "\t" << stat_per_t[i] << "\n";
