@@ -37,7 +37,7 @@ int read_graph(std::string &graph_file_path, igraph_t& G){
 // by removing edges with abs weight less than "t" (implemented)
 // and subsequently vertices with no neightbours (not implemented)
 int threshold_graph(float t, igraph_t &G){
-
+	
     // identify edges to remove
     igraph_vector_t weights;
     igraph_vector_init(&weights, 0);
@@ -62,12 +62,12 @@ int threshold_graph(float t, igraph_t &G){
     return 0;
 }
 
-// Identify largest connected component of the graph
-// and induce in
+// Identify largest connected component of the graph and induce
 int largest_connected_component(igraph_t &G, igraph_t &G_cc){
     // See also igraph_decompose, but since we only need
     // the largest CC, there is no point inducing all CCs.
     
+
     igraph_vector_t membership;
     igraph_vector_init(&membership, 0);
     igraph_vector_t csize;
@@ -87,7 +87,6 @@ int largest_connected_component(igraph_t &G, igraph_t &G_cc){
             max_cc_size = this_cc_size;
         }
      }
-
     // identified largest CC, now collect its vertices
     igraph_vector_t vertices_in_cc;
     igraph_vector_init(&vertices_in_cc, max_cc_size);
@@ -156,7 +155,8 @@ float median(std::vector<float> v){
 
 // Mean/average of a vector
 float mean(std::vector<float> v){
-    float mean = 0;
+
+	float mean = 0;
     float n = v.size();
     for(int i=0; i<n; i++){
         mean = mean + v[i];
@@ -164,7 +164,7 @@ float mean(std::vector<float> v){
     return mean/n;
 }
 
-//standard deviation of a vector
+// Standard deviation of a vector
 float stdev(std::vector<float> v){
     float n = v.size();
     float v_bar = mean(v);
@@ -177,6 +177,25 @@ float stdev(std::vector<float> v){
 
     return sqrt(var);
 }
+
+// Range from l to u, step size increment
+std::vector<float> range(float l, float u, float increment){
+	// Floating point arithmetic
+	float precision = 100.0f;
+	int int_increment = static_cast<int>(increment*precision);
+	int int_l = static_cast<int>(l*precision);
+	int int_u = static_cast<int>(u*precision);
+
+	//std::cout << int_increment << "\t" << int_l << "\t" << int_u << "\n";
+	std::vector<float> out;
+
+	for(int int_t=int_l; int_t<=int_u; int_t+=int_increment){
+		out.push_back(int_t/precision);
+	}
+	
+	return out;
+}
+
 
 ///////////////////////////////////////////////////////////////////////////////
 //     Thresholding functions                                                 //
@@ -194,7 +213,6 @@ int thresholdSpectral(igraph_t &G_p,
 
     // results go here
     std::vector<int>  stat_per_t;
-    std::vector<float> vector_t;
 
     // initialise necessary stuff
     igraph_integer_t E;
@@ -217,22 +235,35 @@ int thresholdSpectral(igraph_t &G_p,
     bool in_step;
     float d;
 
-    // Floating point arithmatic
-    float t;
-    for(int int_t=l*100; int_t<=u*100; int_t+=increment*100){
-        t = int_t/100.0f;
-        std::cout << t << "\n";
+    
+	float t;
+
+	std::vector<float> vector_t = range(l, u, increment);
+	int num_increments = vector_t.size();
+	std::cout << "Number steps: " << num_increments << "\n";
+
+	for(int ii=0;ii<num_increments;ii++){
+		std::cout << vector_t[ii] << ", ";
+	}
+	std::cout << "\n";
+
+
+    for(int i_t=0; i_t < num_increments; i_t++){
+         t = vector_t[i_t];
+        std::cout << "Round: " << i_t << ", Threshold: " << t;
 
         // Threshold step
         threshold_graph(t, G_p); 
 
         // make sure graph is large enough to continue
-        E = igraph_ecount(&G_p); //std::cout << "Threshold " << t << ", Number edges " << E << "\n";
-        
+        E = igraph_ecount(&G_p); 
+		std::cout <<  ", Number edges: " << E ;
+		
         if(E < minimumpartitionsize){break;} //not large enough
-        
+
         // Select the largest connected component (CC)
         largest_connected_component(G_p, G_cc);
+
         if(igraph_ecount(&G_cc) < minimumpartitionsize){break;}
 
         // Laplacian
@@ -249,11 +280,14 @@ int thresholdSpectral(igraph_t &G_p,
         window_differences = rolling_difference(eigen_vector, windowsize);
 
         tol = mean(window_differences) + stdev(window_differences)/2.0;
+		
+		std::cout << ", TOL: " << tol << "\n";
+
         number_clusters = 1;
         cluster_begin = 0;
         cluster_end = 0;
         in_step = false;
-        
+
         for(int i=0; i<window_differences.size(); i++){
             d = window_differences[i];
 
@@ -280,12 +314,13 @@ int thresholdSpectral(igraph_t &G_p,
                 //  else already in a cluster so else nothing
             }
         }
-        vector_t.push_back(t);
         stat_per_t.push_back(number_clusters);
     }
 
-    for(int i=0; i<vector_t.size(); i++){
-        std::cout << vector_t[i] << "\t" << stat_per_t[i] << std::endl;
+	std::cout << "Done\n";
+
+    for(int i=0; i<stat_per_t.size(); i++){
+        std::cout << vector_t[i] << "\t" << stat_per_t[i] << "\n";
     }
 
     igraph_destroy(&G_p);
@@ -358,7 +393,7 @@ int thresholdPercolation(){
 
 
 ///////////////////////////////////////////////////////////////////////////////
-//     Main                                                                  //
+//     Commandline arguments                                                 //
 ///////////////////////////////////////////////////////////////////////////////
 
 void help(std::string prog_name){
@@ -380,6 +415,7 @@ void help(std::string prog_name){
 int arguement_parser(int argc, char **argv, 
         // Mandatory arguement definitions
         std::string &infile,  //input file name
+
         // Here flags (options without arguments) and arguments with defined type
         float &lower,
         float &upper,
@@ -475,6 +511,13 @@ int arguement_parser(int argc, char **argv,
     return 0;
 }
 
+
+
+///////////////////////////////////////////////////////////////////////////////
+//     Main                                                                  //
+///////////////////////////////////////////////////////////////////////////////
+
+
 int main(int argc, char **argv){
     // Parse arguements
 
@@ -515,7 +558,7 @@ int main(int argc, char **argv){
     }
     else if(method==2){
         thresholdCliqueDoubling(G,
-                                  l=l,
+                                l=l,
                                 u=u,
                                 increment=increment,
                                 minimumpartitionsize=minimumpartitionsize);
@@ -528,3 +571,4 @@ int main(int argc, char **argv){
 }
 
 
+///////////////////////////////////////////////////////////////////////////////
