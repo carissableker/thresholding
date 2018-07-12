@@ -3,10 +3,10 @@
 
 #include <vector>     // for std::vector
 #include <iostream>   // for std::cout, std::cerr, std::endl
-#include <fstream>    // for fopen, fclose
+#include <fstream>    // for fopen, fclose (to read igraph)
 #include <algorithm>  // for std::nth_element
 #include <math.h>     // for pow, sqrt
-#include <getopt.h>   // commandline arguement parsing
+#include <getopt.h>   // commandline argument parsing
 #include <stdlib.h>   // atoi, atof
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -48,16 +48,22 @@ int threshold_graph(float t, igraph_t &G){
     // should this be inside the loop, ie per edge???
     igraph_cattribute_EANV(&G, "weight", igraph_ess_all(IGRAPH_EDGEORDER_ID), &weights);
 
+	igraph_real_t w;
     for (int i=0; i<igraph_ecount(&G); i++){
-        igraph_real_t w = VECTOR(weights)[i];
+        w = VECTOR(weights)[i];
         if(w < t &&  w > -t){
             // add this edge index to list of edges to be deleted
             igraph_vector_push_back(&edge_indices, i);
         }     
     }
 
+	std::cout << " About to remove " << igraph_vector_size(&edge_indices) << " edges. ";
     // remove edges 
     igraph_delete_edges(&G, igraph_ess_vector(&edge_indices));
+	std::cout << "Removed edges\n";
+
+	igraph_vector_destroy(&weights);
+	igraph_vector_destroy(&edge_indices);
 
     return 0;
 }
@@ -66,8 +72,8 @@ int threshold_graph(float t, igraph_t &G){
 int largest_connected_component(igraph_t &G, igraph_t &G_cc){
     // See also igraph_decompose, but since we only need
     // the largest CC, there is no point inducing all CCs.
-    
 
+	std::cout << " In cc code ";
     igraph_vector_t membership;
     igraph_vector_init(&membership, 0);
     igraph_vector_t csize;
@@ -76,7 +82,9 @@ int largest_connected_component(igraph_t &G, igraph_t &G_cc){
 
     igraph_clusters(&G, &membership, &csize, &no, IGRAPH_STRONG);
         
-    // interate of csize to find largest CC
+	std::cout << "clusters ";
+
+    // iterate over csize to find largest CC
     int max_cc_size = 0;
     int max_cc_index;
     int this_cc_size;
@@ -98,9 +106,18 @@ int largest_connected_component(igraph_t &G, igraph_t &G_cc){
             j += 1;
         }
     }
+	
+	std::cout << " vertices list";
+
+	std::cout << " number vertices " << igraph_vector_size(&vertices_in_cc);
 
     // induce the subgraph of the largest CC
     igraph_induced_subgraph(&G, &G_cc, igraph_vss_vector(&vertices_in_cc), IGRAPH_SUBGRAPH_AUTO);
+	std::cout << "induced Gcc";
+
+	igraph_vector_destroy(&membership);
+	igraph_vector_destroy(&csize);
+	igraph_vector_destroy(&vertices_in_cc);
 
     return 0;
 }
@@ -108,10 +125,10 @@ int largest_connected_component(igraph_t &G, igraph_t &G_cc){
 // Returns the vector of differences between first and 
 // last elements of the windows of size n in x
 // from igraph_vector_t to  std::vector
-std::vector<float> rolling_difference(igraph_vector_t &x, int n){
+int rolling_difference(igraph_vector_t &x, std::vector<float> &out, int n){
 
     int len_out = igraph_vector_size(&x) - n + 1;
-    std::vector<float> out(len_out);
+    out.resize(len_out);
 
     // for each window start
     for(int ind=0; ind < len_out; ind++) {
@@ -119,14 +136,13 @@ std::vector<float> rolling_difference(igraph_vector_t &x, int n){
         // of the window
         out[ind] = VECTOR(x)[ind+n-1] - VECTOR(x)[ind];
     }
-    return out;
+    return 0;
 }
 
 // Median of a vector
 float median(std::vector<float> v){
     
     int size = v.size();
-
     if(size == 0){
         return NAN;
     }
@@ -178,7 +194,7 @@ float stdev(std::vector<float> v){
     return sqrt(var);
 }
 
-// Range from l to u, step size increment
+// Range from l to u, incrementing by increment
 std::vector<float> range(float l, float u, float increment){
 	// Floating point arithmetic
 	float precision = 100.0f;
@@ -208,15 +224,11 @@ int thresholdSpectral(igraph_t &G_p,
                       int windowsize=5,
                       int minimumpartitionsize=10){
     
-    //igraph_t G_p;
-    //igraph_copy(&G_p, &G);
-
     // results go here
     std::vector<int>  stat_per_t;
 
     // initialise necessary stuff
     igraph_integer_t E;
-    igraph_t G_cc;
     igraph_matrix_t laplacian;
     igraph_matrix_init(&laplacian, 1, 1);
     igraph_vector_t values;
@@ -226,7 +238,13 @@ int thresholdSpectral(igraph_t &G_p,
 	igraph_real_t eigen_value;
     igraph_vector_t eigen_vector;
     igraph_vector_init(&eigen_vector, igraph_matrix_nrow(&vectors));
-    std::vector<float> window_differences;
+
+
+	// connected component
+	igraph_t G_cc;
+		
+
+    std::vector<float> window_differences(10);
 
     // nested loop
     float tol;
@@ -235,10 +253,8 @@ int thresholdSpectral(igraph_t &G_p,
     int cluster_end;
     bool in_step;
     float d;
-
     
 	float t;
-
 	std::vector<float> vector_t = range(l, u, increment);
 	int num_increments = vector_t.size();
 	std::cout << "Number steps: " << num_increments << "\n";
@@ -248,32 +264,37 @@ int thresholdSpectral(igraph_t &G_p,
 	}
 	std::cout << "\n";
 
-
     for(int i_t=0; i_t < num_increments; i_t++){
-         t = vector_t[i_t];
-        std::cout << "Round: " << i_t << ", Threshold: " << t;
+        t = vector_t[i_t];
+
+        std::cout << "Step: " << i_t << ", Threshold: " << t;
 
         // Threshold step
         threshold_graph(t, G_p); 
 
         // make sure graph is large enough to continue
         E = igraph_ecount(&G_p); 
-		std::cout <<  ", Number edges: " << E ;
-		
+		std::cout <<  ", Number edges: " << E;
+
         if(E < minimumpartitionsize){break;} //not large enough
 
         // Select the largest connected component (CC)
         largest_connected_component(G_p, G_cc);
 
+		std::cout << " Got G_cc\t";
+
         if(igraph_ecount(&G_cc) < minimumpartitionsize){break;}
 
         // Laplacian
         igraph_laplacian(&G_cc, &laplacian, NULL, 0, NULL);
-        
-        // Eigen decomposition for symmetric matrices using LAPACK
+       
+		// Eigen decomposition for symmetric matrices using LAPACK
         igraph_lapack_dsyevr(&laplacian, IGRAPH_LAPACK_DSYEV_SELECT, 0, 0, 0, 2, 2, 1e-10, &values, &vectors, 0); 
 
-		// output eigen value of interest! 
+		// destroy G_cc
+		igraph_destroy(&G_cc);
+
+		// output eigen value of interest
 		eigen_value = VECTOR(values)[0];
 		std::cout << ", 2nd Eigenvalue: " << eigen_value;
 
@@ -282,7 +303,7 @@ int thresholdSpectral(igraph_t &G_p,
         igraph_vector_sort(&eigen_vector);
 
         // do the step thing with the eigenvector
-        window_differences = rolling_difference(eigen_vector, windowsize);
+        rolling_difference(eigen_vector, window_differences, windowsize);
 
         tol = mean(window_differences) + stdev(window_differences)/2.0;
 		
@@ -344,7 +365,6 @@ int thresholdCliqueDoubling(igraph_t &G_p,
 
     // results go here
     std::vector<float> stat_per_t;
-    std::vector<float> vector_t;
 
     // initialise necessary stuff
     std::vector<int> clique_count_per_t;
@@ -352,10 +372,15 @@ int thresholdCliqueDoubling(igraph_t &G_p,
     igraph_integer_t E;
     igraph_integer_t res;
 
-    // Floating point arithmatic
-    float t;
-    for(int int_t=l*100; int_t<=u*100; int_t+=increment*100){
-        t = int_t/100.0f;
+	float t;
+
+	std::vector<float> vector_t = range(l, u, increment);
+	int num_increments = vector_t.size();
+	std::cout << "Number steps: " << num_increments << "\n";
+
+
+    for(int i_t=0; i_t < num_increments; i_t++){
+        t = vector_t[i_t];
 
         // Threshold step
         threshold_graph(t, G_p); 
@@ -368,7 +393,6 @@ int thresholdCliqueDoubling(igraph_t &G_p,
         // number of maximal cliques
         igraph_maximal_cliques_count(&G_p, &res, minimumpartitionsize, 0);
 
-        vector_t.push_back(t);
         clique_count_per_t.push_back(res);
     }
 
@@ -406,7 +430,7 @@ void help(std::string prog_name){
     std::cerr <<  "\n Usage: \n";
     std::cerr <<  "   " << prog_name     << " [-OPTIONS]... <GRAPH FILENAME>\n";
     std::cerr <<  "\n Options: \n";
-    std::cerr <<  "  -o  --out                      <filename>        path to store results\n";
+    std::cerr <<  "  -o  --out                      <filename>        path to store results (not implemented)\n";
     std::cerr <<  "                                                         if not given, results are sent to stdout\n";
     std::cerr <<  "  -l  --lower                    <value>            lower bound on thresholds to test (default 0.5)\n";
     std::cerr <<  "  -u  --upper                    <value>            upper bound on thresholds to test (default 0.99)\n";
@@ -414,7 +438,8 @@ void help(std::string prog_name){
     std::cerr <<  "  -w  --windowsize               <value>            sliding window size for spectral method (default 5)\n";
     std::cerr <<  "  -p  --minimumpartitionsize     <value>            minimum size of graph or subgraph after thresholding (default 3)\n";
     std::cerr <<  "  -m  --method                   [1|2|3]            method  (default = 1)\n";
-    std::cerr <<  "\n";
+    std::cerr <<  "  -h  --help                                        Print this help and exit\n";
+	std::cerr <<  "\n";
     exit(1);
 }
 
@@ -502,7 +527,7 @@ int arguement_parser(int argc, char **argv,
     }
  
     // Mandatory arguements 
-    // Current index (optind) must be smaller than the total number of arguements
+    // Current index (optind) must be smaller than the total number of arguments
     if(optind == argc){
         std::cerr << "\n Mandatory argument(s) missing\n";
         help(argv[0]);
@@ -516,7 +541,6 @@ int arguement_parser(int argc, char **argv,
  
     return 0;
 }
-
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -536,9 +560,9 @@ int main(int argc, char **argv){
     int windowsize=5;
     int minimumpartitionsize=3;
     int method=1;
-    std::string outfile;
+    std::string outfile_name;
 
-    arguement_parser(argc, argv, infile, l, u, increment, windowsize, minimumpartitionsize, method, outfile);
+    arguement_parser(argc, argv, infile, l, u, increment, windowsize, minimumpartitionsize, method, outfile_name);
 
     //std::cout << "infile\t" << infile << "\n";
     //std::cout << "lower\t" << lower << "\n";
@@ -547,12 +571,26 @@ int main(int argc, char **argv){
     //std::cout << "method\t" << method << "\n";
     //std::cout << "outfile\t" << outfile << "\n";
     
+
+	// write results to outfile if it exists, 
+	// otherwise write results to std::cout
+	std::ostream* outputTarget = &std::cout;
+
+	if(!outfile_name.empty()){
+		std::ofstream outfile;
+    		outfile.open(outfile_name.c_str());
+		outputTarget = &outfile;
+	}
+
     // turn on attribute handling
+	// for igraph to handle edge weights
     igraph_i_set_attribute_table(&igraph_cattribute_table);
        
     igraph_t G;
     
+	std::cout << "Loading graph ... ";
     read_graph(infile, G);
+	std::cout << "done.\n";
 
     if(method==1){
         thresholdSpectral(G,
