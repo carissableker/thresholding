@@ -10,6 +10,8 @@
 #include <math.h>     // for pow, sqrt
 #include <getopt.h>   // commandline argument parsing
 #include <stdlib.h>   // atoi, atof
+#include <sstream>    // stringstream
+
 
 ///////////////////////////////////////////////////////////////////////////////
 //     Utility functions                                                     //
@@ -34,6 +36,24 @@ int read_graph(std::string &graph_file_path, igraph_t& G){
     
     return 0;
 }
+
+int output_results(std::string& outfile_name, std::string& message){
+	// write results to outfile if it exists, 
+	// otherwise write results to std::cout
+	
+	if(!outfile_name.empty()){
+		std::ofstream outfile;
+   		outfile.open(outfile_name.c_str());
+		outfile << message; 
+		outfile.close();
+	}
+	else{
+		std::cout << message;
+	}
+
+	return 0;
+}
+
 
 // Threshold graph
 // by removing edges with abs weight less than "t" 
@@ -60,11 +80,9 @@ int threshold_graph(float t, igraph_t &G){
     }
 	
 	if(igraph_vector_size(&edge_indices) == 0){
-		std::cout << " No edges to remove ";
 		return 0;
 	}
 	else if(igraph_ecount(&G) <= igraph_vector_size(&edge_indices)){
-		std::cout << " Graph will be empty ";
 		return 0;
 	}
 	
@@ -132,7 +150,6 @@ int largest_connected_component(igraph_t &G, igraph_t &G_cc){
      }
 
 	if(max_cc_size < 2){
-		std::cout << " Largest CC smaller than 2. ";
 		return 0;
 	}
 
@@ -164,12 +181,9 @@ int largest_connected_component(igraph_t &G, igraph_t &G_cc){
 int rolling_difference(igraph_vector_t &x, std::vector<float> &out, int n){
 	
 
-	std::cout << " in rolling " << std::flush;
     int len_out = igraph_vector_size(&x) - n + 1;
-	std::cout << "new out size "  << len_out << std::flush;
 
     out.resize(len_out);
-	std::cout << " resized out to " << len_out << std::flush;
 
     // for each window start
     for(int ind=0; ind < len_out; ind++) {
@@ -244,7 +258,6 @@ std::vector<float> range(float l, float u, float increment){
 	int int_l = static_cast<int>(l*precision);
 	int int_u = static_cast<int>(u*precision);
 
-	std::cout << int_increment << "\t" << int_l << "\t" << int_u << "\n";
 	std::vector<float> out;
 
 	for(int int_t=int_l; int_t<=int_u; int_t+=int_increment){
@@ -310,7 +323,7 @@ int Fiedler_vector(igraph_t &G, igraph_vector_t &eigenvector, igraph_real_t &eig
 //     Thresholding functions                                                 //
 ///////////////////////////////////////////////////////////////////////////////
 
-int thresholdSpectral(igraph_t &G,
+std::string thresholdSpectral(igraph_t &G,
                       float l=0.5,
                       float u=0.99,
                       float increment=0.01,
@@ -345,6 +358,9 @@ int thresholdSpectral(igraph_t &G,
 	// results go here
     std::vector<int>  stat_per_t(num_increments);
 	std::vector<float> second_eigenvalue_per_t(num_increments);
+
+	// keep track of which thresholds were tested
+	std::vector<bool> was_tested_per_t(num_increments, false);
 
 	E = igraph_ecount(&G);
 
@@ -384,8 +400,6 @@ int thresholdSpectral(igraph_t &G,
 
 		Fiedler_vector(G_cc, eigenvector, eigenvalue);
 
-		std::cout << "vector size " << igraph_vector_size(&eigenvector) << std::flush;
-
 		// destroy G_cc
 		igraph_destroy(&G_cc);
 
@@ -395,9 +409,7 @@ int thresholdSpectral(igraph_t &G,
         igraph_vector_sort(&eigenvector);
 
         // do the step thing with the eigenvector
-		std::cout << " here1 " << std::flush; 
         rolling_difference(eigenvector, window_differences, windowsize);
-		std::cout << " here2 " << std::flush; 
 
         tol = mean(window_differences) + stdev(window_differences)/2.0;
 
@@ -433,16 +445,22 @@ int thresholdSpectral(igraph_t &G,
             }
         }
         stat_per_t[i_t] = number_clusters;
-		
+		was_tested_per_t[i_t] = true;
     }
 
-	std::cout << "\nDone" << std::endl;
+	std::cout << "\nDone\n" << std::endl;
 
+	// make results into a string
+	std::stringstream message;
+	message << "threshold\tsecond eigenvalue\tnumber clusters\n";
     for(int i=0; i<stat_per_t.size(); i++){
-        std::cout << t_vector[i] << "\t" << second_eigenvalue_per_t[i] << "\t" << stat_per_t[i] << std::endl;
+		if(was_tested_per_t[i]){
+			message << t_vector[i] << "\t" << second_eigenvalue_per_t[i] << "\t" << stat_per_t[i] << "\n";
+		}
     }
 
-    return 0;
+
+    return message.str();
 }
 
 
@@ -454,8 +472,8 @@ void help(std::string prog_name){
     std::cerr <<  "\n Usage: \n";
     std::cerr <<  "   " << prog_name     << " [-OPTIONS]... <GRAPH FILENAME>\n";
     std::cerr <<  "\n Options: \n";
-//    std::cerr <<  "  -o  --out                      <filename>        path to store results (not implemented)\n";
-//    std::cerr <<  "                                                         if not given, results are sent to stdout\n";
+    std::cerr <<  "  -o  --out                      <filename>        path to store results\n";
+    std::cerr <<  "                                                         if not given, results are sent to stdout\n";
     std::cerr <<  "  -l  --lower                    <value>            lower bound on thresholds to test (default 0.5)\n";
     std::cerr <<  "  -u  --upper                    <value>            upper bound on thresholds to test (default 0.99)\n";
     std::cerr <<  "  -i  --increment                <value>            threshold increment (default 0.01)\n";
@@ -594,39 +612,33 @@ int main(int argc, char **argv){
     //std::cout << "increment\t" << increment << "\n";
     //std::cout << "method\t" << method << "\n";
     //std::cout << "outfile\t" << outfile << "\n";
-    
-
-	// write results to outfile if it exists, 
-	// otherwise write results to std::cout
-	std::ostream* outputTarget = &std::cout;
-
-	if(!outfile_name.empty()){
-		std::ofstream outfile;
-    		outfile.open(outfile_name.c_str());
-		outputTarget = &outfile;
-	}
 
     // turn on attribute handling
 	// for igraph to handle edge weights
     igraph_i_set_attribute_table(&igraph_cattribute_table);
-       
-    igraph_t G;
     
+	// Load graph
+    igraph_t G;
 	std::cout << "Loading graph ... " << std::flush;
     read_graph(infile, G);
 	std::cout << "done." << std::endl;
 
+	std::string message;
+
     if(method==1){
-        thresholdSpectral(G,
+        message = thresholdSpectral(G,
                           l=l, 
                           u=u,
                           increment=increment,
                           windowsize=windowsize,
                           minimumpartitionsize=minimumpartitionsize);
+		output_results(outfile_name, message);
+
     }
     else{
         std::cout << "nothing\n";
     }
+
 
     return 0;
 }
