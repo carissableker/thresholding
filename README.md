@@ -6,16 +6,16 @@ Repository for thresholding code.
 
 ## To compile:
 
-Depends on igraph
+Depends on [igraph](igraph.org/c/).  
 
-    g++ thresholding.cpp -I /home/cbleker/my_lib/igraphc/include/igraph/ -L /home/cbleker/my_lib/igraphc/lib/ -ligraph -o thresholding
+    make
 
 ## To use:
 
-    ./thresholding --help
+    ./threshold --help
 
     Usage: 
-      ./thresholding [-OPTIONS]... <GRAPH FILENAME>
+      ./threshold [-OPTIONS]... <GRAPH FILENAME>
 
      Options: 
       -o  --out                      <filename>        path to store results (not implmented)
@@ -24,5 +24,5 @@ Depends on igraph
       -u  --upper                    <value>            upper bound on thresholds to test (default 0.99)
       -i  --increment                <value>            threshold increment (default 0.01)
       -w  --windowsize               <value>            sliding window size for spectral method (default 5)
-      -p  --minimumpartitionsize     <value>            minimum size of graph or subgraph after thresholding (default 3)
-      -m  --method                   [1|2|3]            method  (default = 1)
+      -p  --minimumpartitionsize     <value>            minimum size of graph or subgraph after thresholding (default 5)
+      -m  --method                   [1|2|3]            method  (default = 1) Spectral methohs only. 
