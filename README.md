@@ -18,7 +18,7 @@ Depends on [igraph](igraph.org/c/).
       ./threshold [-OPTIONS]... <GRAPH FILENAME>
 
      Options: 
-      -o  --out                      <filename>        path to store results (not implmented)
+      -o  --out                      <filename>        path to store results
                                                              if not given, results are sent to stdout
       -l  --lower                    <value>            lower bound on thresholds to test (default 0.5)
       -u  --upper                    <value>            upper bound on thresholds to test (default 0.99)
