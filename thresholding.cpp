@@ -558,15 +558,16 @@ std::string thresholdCliqueDoubling(igraph_t &G,
 
 void help(std::string prog_name){
     std::cerr <<  "\n Usage: \n";
-    std::cerr <<  "   " << prog_name     << " [-OPTIONS]... <GRAPH FILENAME>\n";
+    std::cerr <<  "   " << prog_name     << " [-OPTIONS]... <GRAPH FILE PATH>\n";
+	std::cerr <<  "\n Graph has to be in .ncol format. \n";
     std::cerr <<  "\n Options: \n";
     std::cerr <<  "  -o  --out                      <filename>        path to store results\n";
     std::cerr <<  "                                                         if not given, results are sent to stdout\n";
     std::cerr <<  "  -l  --lower                    <value>            lower bound on thresholds to test (default 0.5)\n";
     std::cerr <<  "  -u  --upper                    <value>            upper bound on thresholds to test (default 0.99)\n";
     std::cerr <<  "  -i  --increment                <value>            threshold increment (default 0.01)\n";
-    std::cerr <<  "  -w  --windowsize               <value>            sliding window size for spectral method (default 5)\n";
-    std::cerr <<  "  -p  --minimumpartitionsize     <value>            minimum size of graph or subgraph after thresholding (default 3)\n";
+    std::cerr <<  "  -w  --windowsize               <value>            sliding window size for spectral method (default )5\n";
+    std::cerr <<  "  -p  --minimumpartitionsize     <value>            minimum size of graph or subgraph after thresholding (default 5)\n";
     std::cerr <<  "  -m  --method                   [1|2|3|4]          method  (default = 1)\n";
 	std::cerr <<  "                                                         1 - Spectral method\n";
 	std::cerr <<  "                                                         2 - Clique doubling\n";
