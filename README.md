@@ -17,6 +17,8 @@ Depends on [igraph](igraph.org/c/).
     Usage: 
       ./threshold [-OPTIONS]... <GRAPH FILENAME>
 
+    GRAPH is in .ncol format. 
+
      Options: 
       -o  --out                      <filename>        path to store results
                                                              if not given, results are sent to stdout
