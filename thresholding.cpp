@@ -115,7 +115,7 @@ int threshold_graph(float t, igraph_t &G){
 		igraph_delete_vertices(&G, igraph_vss_vector(&vertex_indices));
 	}
 	
-	std::cout << igraph_vector_size(&vertex_indices) << " vertices. " ;
+	std::cout << igraph_vector_size(&vertex_indices) << " vertices. " << std::flush;
 
 	igraph_vector_destroy(&vertex_degrees);
 	igraph_vector_destroy(&vertex_indices);
@@ -464,6 +464,94 @@ std::string thresholdSpectral(igraph_t &G,
 }
 
 
+std::string thresholdCliqueDoubling(igraph_t &G,
+					                float l=0.1,
+							        float u=0.99,
+									float increment=0.01,
+									int minimumpartitionsize=3){
+
+    // initialise necessary stuff
+    igraph_integer_t E;			   // number edges before threshold
+	igraph_integer_t new_E;		   // number edges after threshold
+	igraph_integer_t V;			   // number vertices
+	igraph_integer_t clique_count; // number maximal cliques
+
+	// get the threshold increments
+	float t;
+	static const std::vector<float> t_vector = range(l, u, increment);
+	int num_increments = t_vector.size();
+	std::cout << "Number steps: " << num_increments << std::endl;
+
+	// results go here
+    std::vector<float>  stat_per_t(num_increments); //ratios go here
+	std::vector<int>    clique_count_per_t(num_increments);
+
+	// keep track of which thresholds were tested
+	std::vector<bool> was_tested_per_t(num_increments, false);
+
+	E = igraph_ecount(&G);
+
+    for(int i_t=0; i_t < num_increments; i_t++){
+        t = t_vector[i_t];
+
+        std::cout << "\nStep: " << i_t << ", Threshold: " << t << std::flush;
+
+        // Threshold step
+        threshold_graph(t, G); 
+        
+		// make sure graph is large enough to continue
+		V = igraph_vcount(&G);
+        new_E = igraph_ecount(&G); 
+
+		if(new_E < E){
+			E = new_E;
+		}
+		else{
+			std::cout << " New number edges is not less than previous number of edges, skipping. " << std::flush;
+			continue;
+		}
+
+        if(V < minimumpartitionsize){ //not large enough 
+			std::cout <<" Graph too small, finished. " << std::flush;
+			break;
+		} 
+
+		std::cout << " Calculating number of maximal cliques. " << std::flush;
+        // number of maximal cliques
+        igraph_maximal_cliques_count(&G, &clique_count, minimumpartitionsize, 0);
+
+        clique_count_per_t[i_t] = clique_count;
+		was_tested_per_t[i_t] = true;
+    }
+
+    igraph_destroy(&G);
+
+    // ratio between thresholds: p_t = x_t/x_(t-1), no value for x_m
+	int next_clique_num = clique_count_per_t[num_increments-1];
+	int clique_num;
+
+    for(int i = num_increments-2; i >= 0; i--){
+		if(was_tested_per_t[i]){
+			clique_num = clique_count_per_t[i];
+			stat_per_t[i] = (float)clique_num / (float)next_clique_num;
+			next_clique_num = clique_num;
+        }
+    }
+	std::cout << "\nDone\n" << std::endl;
+
+	// make results into a string
+	std::stringstream message;
+	message << "threshold\tnumber maximal cliques\tratio\n";
+    for(int i=0; i < num_increments; i++){
+		if(was_tested_per_t[i]){
+			message << t_vector[i] << "\t" << clique_count_per_t[i] << "\t" << stat_per_t[i] << "\n";
+		}
+    }
+
+    return message.str();
+}
+
+
 ///////////////////////////////////////////////////////////////////////////////
 //     Commandline arguments                                                 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -479,7 +567,11 @@ void help(std::string prog_name){
     std::cerr <<  "  -i  --increment                <value>            threshold increment (default 0.01)\n";
     std::cerr <<  "  -w  --windowsize               <value>            sliding window size for spectral method (default 5)\n";
     std::cerr <<  "  -p  --minimumpartitionsize     <value>            minimum size of graph or subgraph after thresholding (default 3)\n";
-    std::cerr <<  "  -m  --method                   [1|2|3]            method  (default = 1)\n";
+    std::cerr <<  "  -m  --method                   [1|2|3|4]          method  (default = 1)\n";
+	std::cerr <<  "                                                         1 - Spectral method\n";
+	std::cerr <<  "                                                         2 - Clique doubling\n";
+	std::cerr <<  "                                                         3 - Percolation (not implemented)\n";
+	std::cerr <<  "                                                         4 - Random matrix theory (not implemented)\n;
     std::cerr <<  "  -h  --help                                        Print this help and exit\n";
 	std::cerr <<  "\n";
     exit(1);
@@ -635,7 +727,16 @@ int main(int argc, char **argv){
 		output_results(outfile_name, message);
 
     }
-    else{
+
+    else if(method==2){
+        message = thresholdCliqueDoubling(G,
+                                l=l,
+                                u=u,
+                                increment=increment,
+                                minimumpartitionsize=minimumpartitionsize);
+		output_results(outfile_name, message);
+    }
+	else{
         std::cout << "nothing\n";
     }
 
