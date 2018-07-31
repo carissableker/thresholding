@@ -571,7 +571,7 @@ void help(std::string prog_name){
 	std::cerr <<  "                                                         1 - Spectral method\n";
 	std::cerr <<  "                                                         2 - Clique doubling\n";
 	std::cerr <<  "                                                         3 - Percolation (not implemented)\n";
-	std::cerr <<  "                                                         4 - Random matrix theory (not implemented)\n;
+	std::cerr <<  "                                                         4 - Random matrix theory (not implemented)\n";
     std::cerr <<  "  -h  --help                                        Print this help and exit\n";
 	std::cerr <<  "\n";
     exit(1);
