@@ -132,7 +132,7 @@ int largest_connected_component(igraph_t &G, igraph_t &G_cc){
     igraph_vector_t csize;
     igraph_vector_init(&csize, 0);
     igraph_integer_t no; 
-
+	
     igraph_clusters(&G, &membership, &csize, &no, IGRAPH_STRONG);
         
     // iterate over csize to find largest CC
@@ -149,6 +149,16 @@ int largest_connected_component(igraph_t &G, igraph_t &G_cc){
 
 	if(max_cc_size < 2){
 		return 0;
+	}
+
+	// check if there is more than on CC with max_cc_size
+	// TODO what to do if there is more that 1?
+	int num_max_cc = 0;
+	for(int i=0; i<no; i++){
+		this_cc_size = VECTOR(csize)[i];
+		if(this_cc_size == max_cc_size){
+			num_max_cc++;
+		} 
 	}
 
     // identified largest CC, now collect its vertices
@@ -652,6 +662,80 @@ std::string thresholdPercolation(igraph_t &G,
 }
 
 
+std::string thresholdDensity(igraph_t &G,
+					         float l=0.1,
+							 float u=0.99,
+							 float increment=0.01,
+							 int minimumpartitionsize=3){
+
+    // initialise necessary stuff
+    igraph_integer_t E;			   // number edges before threshold
+	igraph_integer_t new_E;		   // number edges after threshold
+	igraph_integer_t V;			   // number vertices
+
+	float density;
+
+	// get the threshold increments
+	float t;
+	static const std::vector<float> t_vector = range(l, u, increment);
+	int num_increments = t_vector.size();
+	std::cout << "Number steps: " << num_increments << std::endl;
+
+	// results go here
+    std::vector<float>  stat_per_t(num_increments); //ratios go here
+
+	// keep track of which thresholds were tested
+	std::vector<bool> was_tested_per_t(num_increments, false);
+
+	E = igraph_ecount(&G);
+
+    for(int i_t=0; i_t < num_increments; i_t++){
+        t = t_vector[i_t];
+
+        std::cout << "\nStep: " << i_t << ", Threshold: " << t << std::flush;
+
+        // Threshold step
+        threshold_graph(t, G); 
+        
+		// make sure graph is large enough to continue
+		V = igraph_vcount(&G);
+        new_E = igraph_ecount(&G); 
+
+		if(new_E < E){
+			E = new_E;
+		}
+		else{
+			std::cout << " New number edges is not less than previous number of edges, skipping. " << std::flush;
+			continue;
+		}
+
+        if(V < minimumpartitionsize){ //not large enough 
+			std::cout <<" Graph too small, finished. " << std::flush;
+			break;
+		} 
+
+		std::cout << " Calculating density. " << std::flush;
+		density = 2.0 * E / (V * (V -1));
+		stat_per_t[i_t] = density;
+
+		was_tested_per_t[i_t] = true;
+    }
+
+    igraph_destroy(&G);
+
+	// make results into a string
+	std::stringstream message;
+	message << "threshold\tdensity\n";
+    for(int i=0; i < num_increments; i++){
+		if(was_tested_per_t[i]){
+			message << t_vector[i] << "\t" <<  stat_per_t[i] << "\n";
+		}
+    }
+
+    return message.str();
+}
+
+
 ///////////////////////////////////////////////////////////////////////////////
 //     Commandline arguments                                                 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -661,7 +745,7 @@ void help(std::string prog_name){
     std::cerr <<  "   " << prog_name     << " [-OPTIONS]... <GRAPH FILE PATH>\n";
 	std::cerr <<  "\n Graph has to be in .ncol format. \n";
     std::cerr <<  "\n Options: \n";
-    std::cerr <<  "  -o  --out                      <filename>        path to store results\n";
+    std::cerr <<  "  -o  --out                      <filename>         path to store results\n";
     std::cerr <<  "                                                         if not given, results are sent to stdout\n";
     std::cerr <<  "  -l  --lower                    <value>            lower bound on thresholds to test (default 0.5)\n";
     std::cerr <<  "  -u  --upper                    <value>            upper bound on thresholds to test (default 0.99)\n";
@@ -670,10 +754,11 @@ void help(std::string prog_name){
     std::cerr <<  "  -p  --minimumpartitionsize     <value>            minimum size of graph or subgraph after thresholding (default 5)\n";
     std::cerr <<  "  -m  --method                   [1|2|3|4]          method  (default = 1)\n";
 	std::cerr <<  "                                                         1 - Spectral method\n";
-	std::cerr <<  "                                                         2 - Clique doubling\n";
-	std::cerr <<  "                                                         3 - Percolation (not implemented)\n";
-	std::cerr <<  "                                                         4 - Random matrix theory (not implemented)\n";
-    std::cerr <<  "  -h  --help                                        Print this help and exit\n";
+	std::cerr <<  "                                                         2 - Clique ratio (generalised clique doubling)\n";
+	std::cerr <<  "															3 - Density\n";
+	std::cerr <<  "                                                         4 - Percolation (not implemented)\n";
+	std::cerr <<  "                                                         5 - Random matrix theory (not implemented)\n";
+    std::cerr <<  "  -h  --help                                        print this help and exit\n";
 	std::cerr <<  "\n";
     exit(1);
 }
@@ -825,8 +910,6 @@ int main(int argc, char **argv){
                           increment=increment,
                           windowsize=windowsize,
                           minimumpartitionsize=minimumpartitionsize);
-		output_results(outfile_name, message);
-
     }
 
     else if(method==2){
@@ -835,12 +918,20 @@ int main(int argc, char **argv){
                                 u=u,
                                 increment=increment,
                                 minimumpartitionsize=minimumpartitionsize);
-		output_results(outfile_name, message);
     }
+	else if(method==3){
+		message = thresholdDensity(G, 
+								   l=l, 
+								   u=u,
+								   increment=increment,
+								   minimumpartitionsize=minimumpartitionsize);
+	} 
 	else{
-        std::cout << "nothing\n";
+        message =  "";
+		std::cout << "\nnothing";
     }
 
+	output_results(outfile_name, message);
 
     return 0;
 }
