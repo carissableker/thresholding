@@ -37,10 +37,10 @@ int read_graph(std::string &graph_file_path, igraph_t& G){
     return 0;
 }
 
+// write results to outfile if it exists, 
+// otherwise write results to std::cout
 int output_results(std::string& outfile_name, std::string& message){
-	// write results to outfile if it exists, 
-	// otherwise write results to std::cout
-	
+
 	if(!outfile_name.empty()){
 		std::ofstream outfile;
    		outfile.open(outfile_name.c_str());
@@ -53,7 +53,6 @@ int output_results(std::string& outfile_name, std::string& message){
 
 	return 0;
 }
-
 
 // Threshold graph
 // by removing edges with abs weight less than "t" 
@@ -94,8 +93,7 @@ int threshold_graph(float t, igraph_t &G){
 	igraph_vector_destroy(&weights);
 	igraph_vector_destroy(&edge_indices);
 
-	// remove degree 0 vertices
-	// identify degree 0 vertices
+	// identify and remove degree 0 vertices
 	igraph_vector_t vertex_degrees;
 	igraph_vector_init(&vertex_degrees, 0);
 
@@ -182,7 +180,6 @@ int rolling_difference(igraph_vector_t &x, std::vector<float> &out, int n){
 	
 
     int len_out = igraph_vector_size(&x) - n + 1;
-
     out.resize(len_out);
 
     // for each window start
@@ -227,8 +224,8 @@ float median(std::vector<float> v){
 
 // Mean/average of a vector
 float mean(std::vector<float> v){
-	float mean = 0;
-    float n = v.size();
+	float mean = 0.0;
+    int n = v.size();
     for(int i=0; i<n; i++){
         mean = mean + v[i];
     }
@@ -236,23 +233,24 @@ float mean(std::vector<float> v){
 }
 
 // Standard deviation of a vector
-float stdev(std::vector<float> v){
+float stddev(std::vector<float> v, float dof=1){
     float n = v.size();
     float v_bar = mean(v);
+	std::cout << " Mean " << v_bar; 
     float var = 0;
 
     for(int i=0; i<n; i++){
         var = var + pow( (v[i] - v_bar), 2.0);
-    }
-    var = var / (n-1);
+	}
 
+    var = var / (n-dof);
     return sqrt(var);
 }
 
 // Range from l to u, incrementing by increment
 std::vector<float> range(float l, float u, float increment){
 	// Floating point arithmetic
-	float precision = 1000.0f; // how to get the actual number of decimal points??
+	float precision = 10000.0f; // how to get the actual number of decimal points??
 
 	int int_increment = static_cast<int>(increment*precision);
 	int int_l = static_cast<int>(l*precision);
@@ -330,10 +328,18 @@ std::string thresholdSpectral(igraph_t &G,
                       int windowsize=5,
                       int minimumpartitionsize=10){
     
+	// compare window size to minimumpartionsize
+	if(minimumpartitionsize <= windowsize){
+		std::cout << " Cannot have minimumpartitionsize <= windowsize. Using windowsize = 5 and minimumpartitionsize = 10." << std::endl;
+		minimumpartitionsize = 10;
+		windowsize=5;
+	}
+
     // initialise necessary stuff
     igraph_integer_t E;			// number edges before threshold
 	igraph_integer_t new_E;		// number edges after threshold
 	igraph_integer_t V;			// number vertices
+	igraph_integer_t V_cc;		// number vertices in LCC
 
 	igraph_real_t eigenvalue;
     igraph_vector_t eigenvector;
@@ -353,7 +359,7 @@ std::string thresholdSpectral(igraph_t &G,
 	float t;
 	static const std::vector<float> t_vector = range(l, u, increment);
 	int num_increments = t_vector.size();
-	std::cout << "Number steps: " << num_increments << std::endl;
+	std::cout << " Number steps: " << num_increments << std::endl;
 
 	// results go here
     std::vector<int>  stat_per_t(num_increments);
@@ -363,6 +369,7 @@ std::string thresholdSpectral(igraph_t &G,
 	std::vector<bool> was_tested_per_t(num_increments, false);
 
 	E = igraph_ecount(&G);
+	
 
     for(int i_t=0; i_t < num_increments; i_t++){
         t = t_vector[i_t];
@@ -393,7 +400,10 @@ std::string thresholdSpectral(igraph_t &G,
 		igraph_t G_cc;
         largest_connected_component(G, G_cc);
 
-        if(igraph_vcount(&G_cc) < minimumpartitionsize){
+		V_cc = igraph_vcount(&G_cc); 
+		std::cout << " V_cc " << V_cc;
+
+        if(V_cc < minimumpartitionsize){
 			std::cout << " LCC too small, finished. " << std::flush;
 			break;
 		}
@@ -411,7 +421,8 @@ std::string thresholdSpectral(igraph_t &G,
         // do the step thing with the eigenvector
         rolling_difference(eigenvector, window_differences, windowsize);
 
-        tol = mean(window_differences) + stdev(window_differences)/2.0;
+        tol = mean(window_differences) + stddev(window_differences)/2.0;
+		std::cout << " tol: " << tol << std::flush; 
 
         number_clusters = 1;
         cluster_begin = 0;
@@ -446,6 +457,7 @@ std::string thresholdSpectral(igraph_t &G,
         }
         stat_per_t[i_t] = number_clusters;
 		was_tested_per_t[i_t] = true;
+		std::cout << " Number clusters: " << number_clusters << std::flush;
     }
 
 	std::cout << "\nDone\n" << std::endl;
@@ -465,6 +477,94 @@ std::string thresholdSpectral(igraph_t &G,
 
 
 std::string thresholdCliqueDoubling(igraph_t &G,
+					                float l=0.1,
+							        float u=0.99,
+									float increment=0.01,
+									int minimumpartitionsize=3){
+
+    // initialise necessary stuff
+    igraph_integer_t E;			   // number edges before threshold
+	igraph_integer_t new_E;		   // number edges after threshold
+	igraph_integer_t V;			   // number vertices
+	igraph_integer_t clique_count; // number maximal cliques
+
+	// get the threshold increments
+	float t;
+	static const std::vector<float> t_vector = range(l, u, increment);
+	int num_increments = t_vector.size();
+	std::cout << "Number steps: " << num_increments << std::endl;
+
+	// results go here
+    std::vector<float>  stat_per_t(num_increments); //ratios go here
+	std::vector<int>    clique_count_per_t(num_increments);
+
+	// keep track of which thresholds were tested
+	std::vector<bool> was_tested_per_t(num_increments, false);
+
+	E = igraph_ecount(&G);
+
+    for(int i_t=0; i_t < num_increments; i_t++){
+        t = t_vector[i_t];
+
+        std::cout << "\nStep: " << i_t << ", Threshold: " << t << std::flush;
+
+        // Threshold step
+        threshold_graph(t, G); 
+        
+		// make sure graph is large enough to continue
+		V = igraph_vcount(&G);
+        new_E = igraph_ecount(&G); 
+
+		if(new_E < E){
+			E = new_E;
+		}
+		else{
+			std::cout << " New number edges is not less than previous number of edges, skipping. " << std::flush;
+			continue;
+		}
+
+        if(V < minimumpartitionsize){ //not large enough 
+			std::cout <<" Graph too small, finished. " << std::flush;
+			break;
+		} 
+
+		std::cout << " Calculating number of maximal cliques. " << std::flush;
+        // number of maximal cliques
+        igraph_maximal_cliques_count(&G, &clique_count, minimumpartitionsize, 0);
+
+        clique_count_per_t[i_t] = clique_count;
+		was_tested_per_t[i_t] = true;
+    }
+
+    igraph_destroy(&G);
+
+    // ratio between thresholds: p_t = x_t/x_(t-1), no value for x_m
+	int next_clique_num = clique_count_per_t[num_increments-1];
+	int clique_num;
+
+    for(int i = num_increments-2; i >= 0; i--){
+		if(was_tested_per_t[i]){
+			clique_num = clique_count_per_t[i];
+			stat_per_t[i] = (float)clique_num / (float)next_clique_num;
+			next_clique_num = clique_num;
+        }
+    }
+	std::cout << "\nDone\n" << std::endl;
+
+	// make results into a string
+	std::stringstream message;
+	message << "threshold\tnumber maximal cliques\tratio\n";
+    for(int i=0; i < num_increments; i++){
+		if(was_tested_per_t[i]){
+			message << t_vector[i] << "\t" << clique_count_per_t[i] << "\t" << stat_per_t[i] << "\n";
+		}
+    }
+
+    return message.str();
+}
+
+
+std::string thresholdPercolation(igraph_t &G,
 					                float l=0.1,
 							        float u=0.99,
 									float increment=0.01,
