@@ -257,10 +257,37 @@ float stddev(std::vector<float> v, float dof=1){
     return sqrt(var);
 }
 
+// get ithe exponent to pow value to make a float an int
+// Stephen Grady
+int get_precision(float k){
+	
+    int exponent=0;
+    bool doneWith0=false;
+
+    std::ostringstream convert;
+    convert<<k;
+    std::string str=convert.str();
+
+    for (int i = str.size()-1; i > -1; --i){
+    	if(str[i]=='.'){
+		    return exponent;
+		}
+        // first nonzero value, start counting places
+        if(str[i]!='0'){
+		    doneWith0=true;
+		}
+		if(doneWith0){
+		    exponent++;
+		}
+    }
+    return 0;
+}
+
+
 // Range from l to u, incrementing by increment
 std::vector<float> range(float l, float u, float increment){
 	// Floating point arithmetic
-	float precision = 10000.0f; // how to get the actual number of decimal points??
+	float precision = pow(10, get_precision(increment));
 
 	int int_increment = static_cast<int>(increment*precision);
 	int int_l = static_cast<int>(l*precision);
