@@ -78,10 +78,13 @@ int threshold_graph(float t, igraph_t &G){
         }     
     }
 	
+	// no edges to remove, don't change G
 	if(igraph_vector_size(&edge_indices) == 0){
 		return 0;
 	}
+	// removing all edges, so just delete all vertices
 	else if(igraph_ecount(&G) <= igraph_vector_size(&edge_indices)){
+		igraph_delete_vertices(&G, igraph_vss_all());
 		return 0;
 	}
 	
@@ -367,7 +370,7 @@ std::string thresholdSpectral(igraph_t &G,
     
 	// compare window size to minimumpartionsize
 	if(minimumpartitionsize <= windowsize){
-		std::cout << " Cannot have minimumpartitionsize <= windowsize. Using windowsize = 5 and minimumpartitionsize = 10." << std::endl;
+		std::cout << " Warning: cannot have minimumpartitionsize <= windowsize. Using windowsize = 5 and minimumpartitionsize = 10." << std::endl;
 		minimumpartitionsize = 10;
 		windowsize=5;
 	}
@@ -406,7 +409,6 @@ std::string thresholdSpectral(igraph_t &G,
 	std::vector<bool> was_tested_per_t(num_increments, false);
 
 	E = igraph_ecount(&G);
-	
 
     for(int i_t=0; i_t < num_increments; i_t++){
         t = t_vector[i_t];
@@ -420,6 +422,12 @@ std::string thresholdSpectral(igraph_t &G,
 		V = igraph_vcount(&G);
         new_E = igraph_ecount(&G); 
 
+		std::cout << " " << V << " " << new_E; 
+        if(V < minimumpartitionsize){ //not large enough 
+			std::cout <<" Graph too small, finished. " << std::flush;
+			break;
+		} 
+
 		if(new_E < E){
 			E = new_E;
 		}
@@ -427,12 +435,6 @@ std::string thresholdSpectral(igraph_t &G,
 			std::cout << " New number edges is not less than previous number of edges, skipping. " << std::flush;
 			continue;
 		}
-
-        if(V < minimumpartitionsize){ //not large enough 
-			std::cout <<" Graph too small, finished. " << std::flush;
-			break;
-		} 
-
 		// Get largest connected component
 		igraph_t G_cc;
         largest_connected_component(G, G_cc);
@@ -552,6 +554,12 @@ std::string thresholdCliqueDoubling(igraph_t &G,
 		V = igraph_vcount(&G);
         new_E = igraph_ecount(&G); 
 
+        if(V < minimumpartitionsize){ //not large enough 
+			std::cout <<" Graph too small, finished. " << std::flush;
+			break;
+		} 
+
+
 		if(new_E < E){
 			E = new_E;
 		}
@@ -559,11 +567,6 @@ std::string thresholdCliqueDoubling(igraph_t &G,
 			std::cout << " New number edges is not less than previous number of edges, skipping. " << std::flush;
 			continue;
 		}
-
-        if(V < minimumpartitionsize){ //not large enough 
-			std::cout <<" Graph too small, finished. " << std::flush;
-			break;
-		} 
 
 		std::cout << " Calculating number of maximal cliques. " << std::flush;
         // number of maximal cliques
@@ -640,6 +643,11 @@ std::string thresholdPercolation(igraph_t &G,
 		V = igraph_vcount(&G);
         new_E = igraph_ecount(&G); 
 
+        if(V < minimumpartitionsize){ //not large enough 
+			std::cout <<" Graph too small, finished. " << std::flush;
+			break;
+		} 
+
 		if(new_E < E){
 			E = new_E;
 		}
@@ -647,11 +655,6 @@ std::string thresholdPercolation(igraph_t &G,
 			std::cout << " New number edges is not less than previous number of edges, skipping. " << std::flush;
 			continue;
 		}
-
-        if(V < minimumpartitionsize){ //not large enough 
-			std::cout <<" Graph too small, finished. " << std::flush;
-			break;
-		} 
 
 		std::cout << " Calculating number of maximal cliques. " << std::flush;
         // number of maximal cliques
@@ -747,6 +750,7 @@ std::string thresholdDensity(igraph_t &G,
 
 		was_tested_per_t[i_t] = true;
     }
+	std::cout << "\nDone\n" << std::endl;
 
     igraph_destroy(&G);
 
@@ -918,6 +922,14 @@ int main(int argc, char **argv){
     //std::cout << "method\t" << method << "\n";
     //std::cout << "outfile\t" << outfile << "\n";
 
+
+	// check that thresholding range is good
+	if(l>=u){
+		std::cout << "Error in threshold limits: cannot have l >= u" << std::endl;
+		return 0;
+	}
+
+
     // turn on attribute handling
 	// for igraph to handle edge weights
     igraph_i_set_attribute_table(&igraph_cattribute_table);
@@ -932,30 +944,31 @@ int main(int argc, char **argv){
 
     if(method==1){
         message = thresholdSpectral(G,
-                          l=l, 
-                          u=u,
-                          increment=increment,
-                          windowsize=windowsize,
-                          minimumpartitionsize=minimumpartitionsize);
+                           l=l, 
+                           u=u,
+                           increment=increment,
+                           windowsize=windowsize,
+                           minimumpartitionsize=minimumpartitionsize);
     }
 
     else if(method==2){
         message = thresholdCliqueDoubling(G,
-                                l=l,
-                                u=u,
-                                increment=increment,
-                                minimumpartitionsize=minimumpartitionsize);
+                           l=l,
+                           u=u,
+                           increment=increment,
+                           minimumpartitionsize=minimumpartitionsize);
     }
 	else if(method==3){
 		message = thresholdDensity(G, 
-								   l=l, 
-								   u=u,
-								   increment=increment,
-								   minimumpartitionsize=minimumpartitionsize);
+						   l=l, 
+						   u=u,
+						   increment=increment,
+						   minimumpartitionsize=minimumpartitionsize);
 	} 
 	else{
         message =  "";
 		std::cout << "\nnothing";
+		return 0;
     }
 
 	output_results(outfile_name, message);
