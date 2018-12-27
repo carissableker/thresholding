@@ -1,7 +1,6 @@
 // Carissa BLeker
 // cbleker@vols.utk.edu
 
-
 #include <igraph.h>
 #include <vector>     // for std::vector
 #include <iostream>   // for std::cout, std::cerr, std::endl
@@ -11,7 +10,6 @@
 #include <getopt.h>   // commandline argument parsing
 #include <stdlib.h>   // atoi, atof
 #include <sstream>    // stringstream
-
 
 ///////////////////////////////////////////////////////////////////////////////
 //     Utility functions                                                     //
@@ -257,7 +255,7 @@ float stddev(std::vector<float> v, float dof=1){
     return sqrt(var);
 }
 
-// get ithe exponent to pow value to make a float an int
+// get the exponent to pow value to make a float an int
 // Stephen Grady
 int get_precision(float k){
     
@@ -509,7 +507,6 @@ std::string thresholdSpectral(igraph_t &G,
     return message.str();
 }
 
-
 std::string thresholdCliqueDoubling(igraph_t &G,
                      float l=0.1,
                      float u=0.99,
@@ -597,18 +594,20 @@ std::string thresholdCliqueDoubling(igraph_t &G,
     return message.str();
 }
 
-
+// 
 std::string thresholdPercolation(igraph_t &G,
                      float l=0.1,
                      float u=0.99,
                      float increment=0.01,
                      int minimumpartitionsize=3){
+    // based on number of connected components and number of vertices 
+    // remaining in the graph after threshold
 
     // initialise necessary stuff
     igraph_integer_t E;            // number edges before threshold
     igraph_integer_t new_E;        // number edges after threshold
     igraph_integer_t V;            // number vertices
-    igraph_integer_t clique_count; // number maximal cliques
+    igraph_integer_t cc_count;     // number connected components
 
     // get the threshold increments
     float t;
@@ -617,8 +616,8 @@ std::string thresholdPercolation(igraph_t &G,
     std::cout << "Number steps: " << num_increments << std::endl;
 
     // results go here
-    std::vector<float>  stat_per_t(num_increments); //ratios go here
-    std::vector<int>    clique_count_per_t(num_increments);
+    std::vector<float>  v_per_t(num_increments); 
+    std::vector<int>    cc_count_per_t(num_increments);
 
     // keep track of which thresholds were tested
     std::vector<bool> was_tested_per_t(num_increments, false);
@@ -650,35 +649,99 @@ std::string thresholdPercolation(igraph_t &G,
             continue;
         }
 
-        std::cout << " Calculating number of maximal cliques. " << std::flush;
-        // number of maximal cliques
-        igraph_maximal_cliques_count(&G, &clique_count, minimumpartitionsize, 0);
-
-        clique_count_per_t[i_t] = clique_count;
+        v_per_t[i_t] = V;
+        std::cout << " Calculating number of connected components. " << std::flush;
+        igraph_clusters(&G, NULL, NULL, &cc_count, IGRAPH_STRONG);
+        cc_count_per_t[i_t] = cc_count;
         was_tested_per_t[i_t] = true;
     }
 
     igraph_destroy(&G);
 
-    // ratio between thresholds: p_t = x_t/x_(t-1), no value for x_m
-    int next_clique_num = clique_count_per_t[num_increments-1];
-    int clique_num;
-
-    for(int i = num_increments-2; i >= 0; i--){
-        if(was_tested_per_t[i]){
-            clique_num = clique_count_per_t[i];
-            stat_per_t[i] = (float)clique_num / (float)next_clique_num;
-            next_clique_num = clique_num;
-        }
-    }
     std::cout << "\nDone\n" << std::endl;
 
     // make results into a string
     std::stringstream message;
-    message << "threshold\tnumber maximal cliques\tratio\n";
+    message << "threshold\tnumber connected components\tnumber vertices\n";
     for(int i=0; i < num_increments; i++){
         if(was_tested_per_t[i]){
-            message << t_vector[i] << "\t" << clique_count_per_t[i] << "\t" << stat_per_t[i] << "\n";
+            message << t_vector[i] << "\t" << cc_count_per_t[i] << "\t" << v_per_t[i] << "\n";
+        }
+    }
+
+    return message.str();
+}
+
+// 
+std::string thresholdRMT(igraph_t &G,
+                     float l=0.1,
+                     float u=0.99,
+                     float increment=0.01,
+                     int minimumpartitionsize=3){
+    // RMT 
+
+    // initialise necessary stuff
+    igraph_integer_t E;            // number edges before threshold
+    igraph_integer_t new_E;        // number edges after threshold
+    igraph_integer_t V;            // number vertices
+    igraph_integer_t cc_count;     // number connected components
+
+    // get the threshold increments
+    float t;
+    static const std::vector<float> t_vector = range(l, u, increment);
+    int num_increments = t_vector.size();
+    std::cout << "Number steps: " << num_increments << std::endl;
+
+    // results go here
+    std::vector<float>  v_per_t(num_increments); 
+
+    // keep track of which thresholds were tested
+    std::vector<bool> was_tested_per_t(num_increments, false);
+
+    E = igraph_ecount(&G);
+
+    for(int i_t=0; i_t < num_increments; i_t++){
+        t = t_vector[i_t];
+
+        std::cout << "\nStep: " << i_t << ", Threshold: " << t << std::flush;
+
+        // Threshold step
+        threshold_graph(t, G); 
+        
+        // make sure graph is large enough to continue
+        V = igraph_vcount(&G);
+        new_E = igraph_ecount(&G); 
+
+        if(V < minimumpartitionsize){ //not large enough 
+            std::cout <<" Graph too small, finished. " << std::flush;
+            break;
+        } 
+
+        if(new_E < E){
+            E = new_E;
+        }
+        else{
+            std::cout << " New number edges is not less than previous number of edges, skipping. " << std::flush;
+            continue;
+        }
+
+        v_per_t[i_t] = V;
+        std::cout << " Calculating number of connected components. " << std::flush;
+        igraph_clusters(&G, NULL, NULL, &cc_count, IGRAPH_STRONG);
+        cc_count_per_t[i_t] = cc_count;
+        was_tested_per_t[i_t] = true;
+    }
+
+    igraph_destroy(&G);
+
+    std::cout << "\nDone\n" << std::endl;
+
+    // make results into a string
+    std::stringstream message;
+    message << "threshold\tnumber connected components\tnumber vertices\n";
+    for(int i=0; i < num_increments; i++){
+        if(was_tested_per_t[i]){
+            message << t_vector[i] << "\t" << cc_count_per_t[i] << "\t" << v_per_t[i] << "\n";
         }
     }
 
@@ -706,7 +769,7 @@ std::string thresholdDensity(igraph_t &G,
     std::cout << "Number steps: " << num_increments << std::endl;
 
     // results go here
-    std::vector<float>  stat_per_t(num_increments); //ratios go here
+    std::vector<float>  stat_per_t(num_increments); // density goes here
 
     // keep track of which thresholds were tested
     std::vector<bool> was_tested_per_t(num_increments, false);
@@ -781,7 +844,7 @@ void help(std::string prog_name){
     std::cerr <<  "                                                         1 - Spectral method\n";
     std::cerr <<  "                                                         2 - Clique ratio (generalised clique doubling)\n";
     std::cerr <<  "                                                         3 - Density\n";
-    std::cerr <<  "                                                         4 - Percolation (not implemented)\n";
+    std::cerr <<  "                                                         4 - Percolation\n";
     std::cerr <<  "                                                         5 - Random matrix theory (not implemented)\n";
     std::cerr <<  "  -h  --help                                        print this help and exit\n";
     std::cerr <<  "\n";
@@ -887,11 +950,9 @@ int arguement_parser(int argc, char **argv,
     return 0;
 }
 
-
 ///////////////////////////////////////////////////////////////////////////////
 //     Main                                                                  //
 ///////////////////////////////////////////////////////////////////////////////
-
 
 int main(int argc, char **argv){
    
@@ -935,39 +996,40 @@ int main(int argc, char **argv){
 
     std::string message;
 
-    if(method==1){
-        message = thresholdSpectral(G,
+    switch(method){
+        case 1 : message = thresholdSpectral(G,
                            l=l, 
                            u=u,
                            increment=increment,
                            windowsize=windowsize,
                            minimumpartitionsize=minimumpartitionsize);
-    }
-
-    else if(method==2){
-        message = thresholdCliqueDoubling(G,
+                 break;  
+        case 2 : message = thresholdCliqueDoubling(G,
                            l=l,
                            u=u,
                            increment=increment,
                            minimumpartitionsize=minimumpartitionsize);
-    }
-    else if(method==3){
-        message = thresholdDensity(G, 
+                 break;
+        case 3 : message = thresholdDensity(G, 
                            l=l, 
                            u=u,
                            increment=increment,
                            minimumpartitionsize=minimumpartitionsize);
-    } 
-    else{
-        message =  "";
-        std::cout << "\nNot a valid metthod selected.\n";
-        return 0;
+                 break;
+        case 4 : message = thresholdPercolation(G, 
+                           l=l, 
+                           u=u,
+                           increment=increment,
+                           minimumpartitionsize=minimumpartitionsize);
+                 break;
+
+        default : message =  "";
+                       std::cout << "\nNot a valid method selected.\n";
     }
 
     output_results(outfile_name, message);
 
     return 0;
 }
-
 
 ///////////////////////////////////////////////////////////////////////////////
