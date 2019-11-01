@@ -1,15 +1,28 @@
-CC	= g++
+CC	    = g++
 FLAGS   = -std=c++11 -g  
 LIBS	= -ligraph 
-LIB_DIR = -L/usr/local/lib
-INC     = -I/usr/local/include/igraph
+LIBDIR  = -L/usr/local/lib 
+INC     = -I/usr/local/include/igraph -I./include
 
-EXECUTABLE = threshold
+TARGET = bin/threshold
 
-threshold: ./src/thresholding.cpp
-	$(CC) $(FLAGS) ./src/thresholding.cpp $(INC) $(LIB_DIR) $(LIBS) -o $(EXECUTABLE)
+SRCDIR = src
+SRCEXT = cpp
+SOURCES = $(shell find $(SRCDIR) -type f -name *.$(SRCEXT))
+
+BUILDDIR = build
+OBJECTS = $(patsubst $(SRCDIR)/%,$(BUILDDIR)/%,$(SOURCES:.$(SRCEXT)=.o))
+
+$(info $(SOURCES))
+$(info $(OBJECTS))
+
+
+$(TARGET): $(OBJECTS)
+	$(CC) -o $@ $^ $(FLAGS) $(LIBS)
+
+$(BUILDDIR)/%.o: $(SRCDIR)/%.$(SRCEXT)
+	@mkdir -p $(BUILDDIR)
+	$(CC) -c -o $@ $< $(FLAGS) $(INC) $(LIBDIR) $(LIBS)
 
 clean:
-	rm -rf core* *.o $(EXECUTALBE)
-
-
+	$(RM) -r $(BUILDDIR) $(TARGET)
