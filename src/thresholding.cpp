@@ -13,6 +13,7 @@
 #include <stdlib.h>   // atoi, atof
 #include <sstream>    // stringstream
 #include <cmath>      // std::copysign
+#include <math.h>     // isnormal
 
 #include "utils.h"
 #include "math_ext.h"
@@ -20,61 +21,81 @@
 #include "spline.h"
 
 
-#include "specialfunctions.h"  // ALGLIB header that contains ChiSquareCDistribution
+#include "alglib/specialfunctions.h"  // ALGLIB header that contains ChiSquareCDistribution
 
 //////////////////////////////////////////////////////////////////////////////
 //     Thresholding functions                                                 //
 ///////////////////////////////////////////////////////////////////////////////
 // TODO: DRY
 
-std::string thresholdSpectral(igraph_t &G,
+std::string thresholdAll(igraph_t &G,
                      double l=0.5,
                      double u=0.99,
                      double increment=0.01,
                      int windowsize=5,
-                     int minimumpartitionsize=10){
+                     int minimumpartitionsize=10, 
+                     int minimum_cliquesize=3){
     
     // compare window size to minimumpartionsize
     if(minimumpartitionsize <= windowsize){
-        std::cout << " Warning: cannot have minimumpartitionsize <= windowsize. Using windowsize = 5 and minimumpartitionsize = 10." << std::endl;
+        std::cout << " Warning: cannot have minimumpartitionsize <= spectral_minimumpartitionsize. Using windowsize = 5 and spectral_minimumpartitionsize = 10." << std::endl;
         minimumpartitionsize = 10;
         windowsize = 5;
     }
 
-    // initialise necessary stuff
-    igraph_integer_t E;         // number edges before threshold
-    igraph_integer_t new_E;     // number edges after threshold
-    igraph_integer_t V;         // number vertices
-    igraph_integer_t V_cc;      // number vertices in LCC
-
-    // other stuff
-    igraph_real_t eigenvalue;
-    igraph_vector_t eigenvector;
-    igraph_vector_init(&eigenvector, 0);
-    std::vector<double> window_differences;
-
-    // nested loop
-    double tol;
-    int number_clusters;
-    int cluster_begin;
-    int cluster_end;
-    bool in_step;
-    double d;
-    
     // get the threshold increments
     double t;
     static const std::vector<double> t_vector = range(l, u, increment);
     int num_increments = t_vector.size();
     std::cout << " Number steps: " << num_increments << std::endl;
+    
+    ///////////////////////////////////////////////////////////////////////
+    // Results go here
+    ///////////////////////////////////////////////////////////////////////
 
-    // results go here
-    std::vector<int>  stat_per_t(num_increments);
+    std::vector<int>  spectral_components_per_t(num_increments);
     std::vector<double> second_eigenvalue_per_t(num_increments);
+
+    std::vector<double>  clique_ratio_per_t(num_increments); //ratios go here
+    std::vector<int>     clique_count_per_t(num_increments);
+    std::vector<int>     clique_number_per_t(num_increments);
+
+    std::vector<double> density_per_t(num_increments);
+    std::vector<double> density_orig_V_per_t(num_increments);
+
+    std::vector<double> poi_chi_sq_stat_per_t(num_increments);
+    std::vector<double> goe_chi_sq_stat_per_t(num_increments);
+
+    std::vector<double> poi_chi_sq_pvalue_per_t(num_increments);
+    std::vector<double> goe_chi_sq_pvalue_per_t(num_increments);
+
+    std::vector<double>  v_per_t(num_increments); 
+    std::vector<int>    cc_count_per_t(num_increments);
+    std::vector<int>    largest_cc_size_per_t(num_increments);
+
+
+    std::vector<double> scale_free_pvalue_per_t(num_increments);
+    std::vector<double> scale_free_KS_per_t(num_increments);
 
     // keep track of which thresholds were tested
     std::vector<bool> was_tested_per_t(num_increments, false);
 
+    ///////////////////////////////////////////////////////////////////////
+    // Initialise necessary stuff
+    ///////////////////////////////////////////////////////////////////////
+
+    igraph_integer_t E;         // number edges before threshold
+    igraph_integer_t new_E;     // number edges after threshold
+    igraph_integer_t V;         // number vertices
+    double orig_max_E;          // Max number edges based on original number of vertices
+    
+    ///////////////////////////////////////////////////////////////////////
+    // Start thresholding loop:
+    ///////////////////////////////////////////////////////////////////////
+
     E = igraph_ecount(&G);
+    V = igraph_vcount(&G);
+    orig_max_E = 0.5 * V * (V -1);
 
     for(int i_t=0; i_t < num_increments; i_t++){
         t = t_vector[i_t];
@@ -98,311 +119,127 @@ std::string thresholdSpectral(igraph_t &G,
             E = new_E;
         }
         else{
-            std::cout << " New number edges is not less than previous number of edges, skipping. " << std::flush;
+            std::cout << " New number edges is not less than previous number of edges, skipping. " << std::endl;
             continue;
         }
+
+        ///////////////////////////////////////////////////////////////////////
+        // Density
+        ///////////////////////////////////////////////////////////////////////
+        
+        density_per_t[i_t] = 2.0 * (double) E / (V * (V -1));;
+        density_orig_V_per_t[i_t] = 2.0 * E / orig_max_E;
+        
+        ///////////////////////////////////////////////////////////////////////
+        // Maximal Clique Number
+        ///////////////////////////////////////////////////////////////////////
+
+        // igraph_integer_t clique_count;      // number maximal cliques
+        // igraph_integer_t clique_number;     // clique count / maxium clique size
+
+        // igraph_maximal_cliques_count(&G, &clique_count, minimum_cliquesize, 0);
+        // clique_count_per_t[i_t] = clique_count;
+        // igraph_clique_number(&G, &clique_number);
+        // clique_number_per_t[i_t] = clique_number;
+
+        ///////////////////////////////////////////////////////////////////////
+        // Scale free
+        ///////////////////////////////////////////////////////////////////////
+
+        igraph_vector_t degrees;
+        igraph_vector_init(&degrees, V); // degrees will go in here. 
+
+        igraph_degree(&G, &degrees, igraph_vss_all(), IGRAPH_ALL, IGRAPH_NO_LOOPS);
+
+        igraph_plfit_result_t scale_free_result;
+
+        igraph_power_law_fit(&degrees, &scale_free_result, -1, 0);
+
+        scale_free_pvalue_per_t[i_t] = scale_free_result.p;
+        scale_free_KS_per_t[i_t] = scale_free_result.D;
+
+        ///////////////////////////////////////////////////////////////////////
+        // Spectral Methods
+        ///////////////////////////////////////////////////////////////////////
+        
+        igraph_real_t eigenvalue;
+        igraph_vector_t eigenvector;
+        igraph_vector_init(&eigenvector, 0);
+        std::vector<double> window_differences;
 
         // Get largest connected component
         igraph_t G_cc;
-        largest_connected_component(G, G_cc);
+        igraph_integer_t cc_count;
+        largest_connected_component(G, G_cc, cc_count);
 
 		// make sure largest connected component is large enough to continue
+        igraph_integer_t V_cc;      // number vertices in LCC
         V_cc = igraph_vcount(&G_cc); 
-        std::cout << " V_cc " << V_cc;
-        if(V_cc < minimumpartitionsize){
-            std::cout << " LCC too small, finished. " << std::flush;
-            break;
-        }
+        //std::cout << " V_cc " << V_cc;
+        
+        largest_cc_size_per_t[i_t] = V_cc;
 
-        Fiedler_vector(G_cc, eigenvector, eigenvalue);
 
-        // destroy G_cc
-        igraph_destroy(&G_cc);
+        int number_clusters = 1;
 
-        // keep eigenvalue of interest
-        second_eigenvalue_per_t[i_t] = eigenvalue;
+        if(V_cc >= minimumpartitionsize){
 
-        // do the sort and step thing with the eigenvector
-        igraph_vector_sort(&eigenvector);
-		rolling_difference_igraph(eigenvector, window_differences, windowsize);
+            Fiedler_vector(G_cc, eigenvector, eigenvalue);
 
-        tol = mean(window_differences) + stddev(window_differences)/2.0;
-        std::cout << " tol: " << tol << std::flush; 
+            // destroy G_cc
+            igraph_destroy(&G_cc);
 
-        number_clusters = 1;
-        cluster_begin = 0;
-        cluster_end = 0;
-        in_step = false;
+            // keep eigenvalue of interest
+            second_eigenvalue_per_t[i_t] = eigenvalue;
 
-        for(int i=0; i<window_differences.size(); i++){
-            d = window_differences[i];
+            // do the sort and step thing with the eigenvector
+            igraph_vector_sort(&eigenvector);
+    		rolling_difference_igraph(eigenvector, window_differences, windowsize);
 
-            if(d >= tol){
-                // need to enter or stay in a step
-                if(in_step == false){
-                    // enter step and end a cluster
-                    in_step = true;
-                    cluster_end = i;
-                    // end the last cluster, add it to the number of clusters if it is large enough
-                    if(cluster_end - cluster_begin >= minimumpartitionsize){
-                        number_clusters = number_clusters+1;
+            double tol = mean(window_differences) + stddev(window_differences)/2.0;
+            int cluster_begin = 0;
+            int cluster_end = 0;
+            bool in_step = false;
+
+            for(int i=0; i<window_differences.size(); i++){
+
+                double d = window_differences[i];
+
+                if(d >= tol){
+                    // need to enter or stay in a step
+                    if(in_step == false){
+                        // enter step and end a cluster
+                        in_step = true;
+                        cluster_end = i;
+                        // end the last cluster, add it to the number of clusters if it is large enough
+                        if(cluster_end - cluster_begin >= minimumpartitionsize){
+                            number_clusters = number_clusters+1;
+                        }
                     }
+                    // else we're already in the step, so do nothing
                 }
-                // else we're already in the step, so do nothing
-            }
-            else{
-                // not in a step, we're entering or still in a cluster
-                if (in_step == true){
-                    //  entering a cluster
-                    in_step = false;
-                    cluster_begin = i;
+                else{
+                    // not in a step, we're entering or still in a cluster
+                    if (in_step == true){
+                        //  entering a cluster
+                        in_step = false;
+                        cluster_begin = i;
+                    }
+                    //  else already in a cluster so else nothing
                 }
-                //  else already in a cluster so else nothing
             }
         }
-        stat_per_t[i_t] = number_clusters;
-        was_tested_per_t[i_t] = true;
-        std::cout << " Number clusters: " << number_clusters << std::flush;
-    }
-
-    std::cout << "\nDone\n" << std::endl;
-
-    // make results into a string
-    std::stringstream message;
-    message << "threshold\tsecond eigenvalue\tnumber clusters\n";
-    for(int i=0; i<stat_per_t.size(); i++){
-        if(was_tested_per_t[i]){
-            message << t_vector[i] << "\t" << second_eigenvalue_per_t[i] << "\t" << stat_per_t[i] << "\n";
-        }
-    }
-
-    return message.str();
-}
-
-std::string thresholdCliqueDoubling(igraph_t &G,
-                     double l=0.1,
-                     double u=0.99,
-                     double increment=0.01,
-                     int minimumpartitionsize=3){
-
-    // initialise necessary stuff
-    igraph_integer_t E;            // number edges before threshold
-    igraph_integer_t new_E;        // number edges after threshold
-    igraph_integer_t V;            // number vertices
-    igraph_integer_t clique_count; // number maximal cliques
-
-    // get the threshold increments
-    double t;
-    static const std::vector<double> t_vector = range(l, u, increment);
-    int num_increments = t_vector.size();
-    std::cout << "Number steps: " << num_increments << std::endl;
-
-    // results go here
-    std::vector<double>  stat_per_t(num_increments); //ratios go here
-    std::vector<int>    clique_count_per_t(num_increments);
-
-    // keep track of which thresholds were tested
-    std::vector<bool> was_tested_per_t(num_increments, false);
-
-    E = igraph_ecount(&G);
-
-    for(int i_t=0; i_t < num_increments; i_t++){
-        t = t_vector[i_t];
-
-        std::cout << "\nStep: " << i_t << ", Threshold: " << t << std::flush;
-
-        // Threshold step
-        threshold_graph(t, G); 
-        
-        // make sure graph is large enough to continue
-        V = igraph_vcount(&G);
-        new_E = igraph_ecount(&G); 
-
-        if(V < minimumpartitionsize){ //not large enough 
-            std::cout <<" Graph too small, finished. " << std::flush;
-            break;
-        } 
-
-        if(new_E < E){
-            E = new_E;
-        }
         else{
-            std::cout << " New number edges is not less than previous number of edges, skipping. " << std::flush;
-            continue;
+            // don't do spectral methods
+            number_clusters = -1;
         }
+        spectral_components_per_t[i_t] = number_clusters;
 
-        std::cout << " Calculating number of maximal cliques. " << std::flush;
-        // number of maximal cliques
-        igraph_maximal_cliques_count(&G, &clique_count, minimumpartitionsize, 0);
 
-        clique_count_per_t[i_t] = clique_count;
-        was_tested_per_t[i_t] = true;
-    }
-
-    igraph_destroy(&G);
-
-    // ratio between thresholds: p_t = x_t/x_(t-1), no value for x_m
-    int next_clique_num = clique_count_per_t[num_increments-1];
-    int clique_num;
-
-    for(int i = num_increments-2; i >= 0; i--){
-        if(was_tested_per_t[i]){
-            clique_num = clique_count_per_t[i];
-            stat_per_t[i] = (double)clique_num / (double)next_clique_num;
-            next_clique_num = clique_num;
-        }
-    }
-    std::cout << "\nDone\n" << std::endl;
-
-    // make results into a string
-    std::stringstream message;
-    message << "threshold\tnumber maximal cliques\tmaximal clique ratio\n";
-    for(int i=0; i < num_increments; i++){
-        if(was_tested_per_t[i]){
-            message << t_vector[i] << "\t" << clique_count_per_t[i] << "\t" << stat_per_t[i] << "\n";
-        }
-    }
-
-    return message.str();
-}
-
-// 
-std::string thresholdPercolation(igraph_t &G,
-                     double l=0.1,
-                     double u=0.99,
-                     double increment=0.01,
-                     int minimumpartitionsize=3){
-    // based on number of connected components and number of vertices 
-    // remaining in the graph after threshold
-
-    // initialise necessary stuff
-    igraph_integer_t E;            // number edges before threshold
-    igraph_integer_t new_E;        // number edges after threshold
-    igraph_integer_t V;            // number vertices
-    igraph_integer_t cc_count;     // number connected components
-
-    // get the threshold increments
-    double t;
-    static const std::vector<double> t_vector = range(l, u, increment);
-    int num_increments = t_vector.size();
-    std::cout << "Number steps: " << num_increments << std::endl;
-
-    // results go here
-    std::vector<double>  v_per_t(num_increments); 
-    std::vector<int>    cc_count_per_t(num_increments);
-
-    // keep track of which thresholds were tested
-    std::vector<bool> was_tested_per_t(num_increments, false);
-
-    E = igraph_ecount(&G);
-
-    for(int i_t=0; i_t < num_increments; i_t++){
-        t = t_vector[i_t];
-
-        std::cout << "\nStep: " << i_t << ", Threshold: " << t << std::flush;
-
-        // Threshold step
-        threshold_graph(t, G); 
+        ///////////////////////////////////////////////////////////////////////
+        // Random Matrix Theory
+        ///////////////////////////////////////////////////////////////////////
         
-        // make sure graph is large enough to continue
-        V = igraph_vcount(&G);
-        new_E = igraph_ecount(&G); 
-
-        if(V < minimumpartitionsize){ //not large enough 
-            std::cout <<" Graph too small, finished. " << std::flush;
-            break;
-        } 
-
-        if(new_E < E){
-            E = new_E;
-        }
-        else{
-            std::cout << " New number edges is not less than previous number of edges, skipping. " << std::flush;
-            continue;
-        }
-
-        v_per_t[i_t] = V;
-        std::cout << " Calculating number of connected components. " << std::flush;
-        igraph_clusters(&G, NULL, NULL, &cc_count, IGRAPH_STRONG);
-        cc_count_per_t[i_t] = cc_count;
-        was_tested_per_t[i_t] = true;
-    }
-
-    igraph_destroy(&G);
-
-    std::cout << "\nDone\n" << std::endl;
-
-    // make results into a string
-    std::stringstream message;
-    message << "threshold\tnumber connected components\tnumber vertices\n";
-    for(int i=0; i < num_increments; i++){
-        if(was_tested_per_t[i]){
-            message << t_vector[i] << "\t" << cc_count_per_t[i] << "\t" << v_per_t[i] << "\n";
-        }
-    }
-
-    return message.str();
-}
-
-// 
-std::string thresholdRMT(igraph_t &G,
-                     double l=0.1,
-                     double u=0.99,
-                     double increment=0.01,
-                     int minimumpartitionsize=3){
-    // RMT 
-
-    // initialise necessary stuff
-    igraph_integer_t E;            // number edges before threshold
-    igraph_integer_t new_E;        // number edges after threshold
-    igraph_integer_t V;            // number vertices
-
-
-    // get the threshold increments
-    double t;
-    static const std::vector<double> t_vector = range(l, u, increment);
-    int num_increments = t_vector.size();
-    std::cout << "Number steps: " << num_increments << std::endl;
-
-    // keep track of which thresholds were tested
-    std::vector<bool> was_tested_per_t(num_increments, false);
-
-    E = igraph_ecount(&G);
-
-
-    // results go here
-    std::vector<double> poi_chi_sq_stat_per_t(num_increments);;
-    std::vector<double> goe_chi_sq_stat_per_t(num_increments);;
-
-    std::vector<double> poi_chi_sq_pvalue_per_t(num_increments);;
-    std::vector<double> goe_chi_sq_pvalue_per_t(num_increments);;
-
-    for(int i_t=0; i_t < num_increments; i_t++){
-        t = t_vector[i_t];
-
-        std::cout << "\nStep: " << i_t << ", Threshold: " << t << std::flush;
-
-        // Threshold step
-        threshold_graph(t, G); 
-        
-        // make sure graph is large enough to continue
-        V = igraph_vcount(&G);
-        new_E = igraph_ecount(&G); 
-
-        if(V < minimumpartitionsize){ //not large enough 
-            std::cout <<" Graph too small, finished. " << std::flush;
-            break;
-        } 
-
-        if(new_E < E){
-            E = new_E;
-        }
-        else{
-            std::cout << " New number edges is not less than previous number of edges, skipping. " << std::flush;
-            continue;
-        }
-
-        // Here
         igraph_matrix_t A;
         igraph_matrix_init(&A, V, V);
         get_weighted_adjacency(G, A);
@@ -419,10 +256,8 @@ std::string thresholdRMT(igraph_t &G,
         // scale eigenvalues: divide by largest absolute value eigenvalue
         // then add 1 (doesn't affect NNSD but fixes spline issues)
         double largest_eigenvalue = fabs(igraph_vector_tail(&eigenvalues));
-
         std::vector<double> eigenvalues_sorted;
 
-        std::cout << "\n";
         double this_eigenvalue, previous_eigenvalue;
 
         this_eigenvalue = VECTOR(eigenvalues)[0] / largest_eigenvalue + 1;
@@ -432,7 +267,7 @@ std::string thresholdRMT(igraph_t &G,
             this_eigenvalue = VECTOR(eigenvalues)[i] / largest_eigenvalue + 1;
             if(fabs(previous_eigenvalue - this_eigenvalue) > 0.00001){
                 eigenvalues_sorted.push_back(this_eigenvalue);
-                std::cout << this_eigenvalue << "\t";
+                //std::cout << this_eigenvalue << "\n";
                 previous_eigenvalue = this_eigenvalue;
             }
         }
@@ -446,8 +281,17 @@ std::string thresholdRMT(igraph_t &G,
 
         std::vector<double> cdf = ecdf(eigenvalues_sorted, t);
 
+        //for (int i=0; i < cdf.size(); i++){
+        //    std::cout << "\n" << i << "\t" << t[i] << "\t" << cdf[i];
+        //}
+
+
         // Find smooth distribution of eigenvalues by fitting a spline to the CDF and evaluating at eigenvalues values
         std::vector<double> new_cdf = spline(t, cdf, eigenvalues_sorted); 
+
+        //for (int i=0; i < new_cdf.size(); i++){
+        //    std::cout << "\n" << i << "\t" << eigenvalues_sorted[i] << "\t" << new_cdf[i];
+        //}
 
         // NNSD 
         std::vector<double> NNSD;
@@ -457,13 +301,11 @@ std::string thresholdRMT(igraph_t &G,
 
         double NNSD_mean = mean(NNSD);
 
-        std::cout << "\nNNSD_size " << NNSD_size << "\n";
+        //std::cout << "\nNNSD_size " << NNSD_size << "\n";
         for (int i=0; i < NNSD_size; i++){
             NNSD[i] = NNSD[i] * n ;
-            std::cout << NNSD[i] << "\t";
-
+        //    std::cout << "\n" << i << "\t" << NNSD[i];
         }
-        std::cout << "\n";
 
         // Chi2 test on NNSD
         // https://github.com/spficklin/RMTGeneNet/blob/master/threshold/methods/RMTThreshold.cpp
@@ -473,7 +315,6 @@ std::string thresholdRMT(igraph_t &G,
         std::sort(NNSD.begin(), NNSD.end());
 
         // Need to discretise continuous NNSD
-        // Use range of [0, 3], and each bin must have 5 counts (observed values)
         double bin_start = 0;
         double bin_end = 0;
 
@@ -505,7 +346,6 @@ std::string thresholdRMT(igraph_t &G,
             if(this_bin_count == observed_count){
                 // either still in the range of values, 
                 // or reached end but divisivle by 5
-                
                 if(h == NNSD_size){
                     bin_end = NNSD[h-1];
                 }
@@ -524,6 +364,7 @@ std::string thresholdRMT(igraph_t &G,
                 // so add this to the previous bin
                 // bin start stays the same, bin_end is last value
                 bin_end = NNSD[h-1];
+                //std::cout << "\n h\t" << h << "\tbin end\t" << bin_end << "\t" << NNSD[h-1] << "\n";
                 bin_end_vector[no_bins-1] = bin_end;
                 bin_count_vector[no_bins-1] = bin_count_vector[no_bins-1] + this_bin_count;
 
@@ -531,9 +372,6 @@ std::string thresholdRMT(igraph_t &G,
             }
 
         }
-        std::cout << "\n\nNumber bins " << no_bins << std::endl;
-        std::cout << "\n";
-        
         double poi_chi_sq_stat = 0;
         double goe_chi_sq_stat = 0;
 
@@ -543,125 +381,98 @@ std::string thresholdRMT(igraph_t &G,
             bin_end = bin_end_vector[b];
             observed_count = bin_count_vector[b];
 
-            std::cout << b << "\t" << bin_start << "\t " << bin_end << "\t " << observed_count << "\t ";
+            //std::cout << b << "\t" << bin_start << "\t " << bin_end << "\t " << observed_count << "\t ";
 
             // If Poisson, then 
             expected_count = NNSD_size * ( poisson(bin_start, bin_end) );
             poi_chi_sq_stat += pow(observed_count - expected_count, 2) / expected_count;
-            std::cout << expected_count << "\t ";
+            //std::cout << expected_count << "\t ";
 
             // If GOE, then
             expected_count = NNSD_size * ( goe(bin_start, bin_end) );
             goe_chi_sq_stat += pow(observed_count - expected_count, 2) / expected_count;
-            std::cout << expected_count << std::endl;
+            //std::cout << expected_count << std::endl;
         }
 
         poi_chi_sq_stat_per_t[i_t] = poi_chi_sq_stat;
         goe_chi_sq_stat_per_t[i_t] = goe_chi_sq_stat;
 
-        // Chi2 test - 
         // df = no_bins - 1
         // p-value = area under right hand tail
         // http://www.alglib.net/specialfunctions/distributions/chisquare.php
 
-        poi_chi_sq_pvalue_per_t[i_t] = alglib::chisquarecdistribution(no_bins -1, poi_chi_sq_stat);
-        goe_chi_sq_pvalue_per_t[i_t] = alglib::chisquarecdistribution(no_bins -1, goe_chi_sq_stat);
-
-        was_tested_per_t[i_t] = true;
-    }
-
-    igraph_destroy(&G);
-
-    std::cout << "\nDone\n" << std::endl;
-
-    // make results into a string
-    std::stringstream message;
-    message << "threshold\tPoisson Chi2\tPoisson p-value\tGOE Chi2\tGOE p-value\n";
-    for(int i=0; i < num_increments; i++){
-        if(was_tested_per_t[i]){
-            message << t_vector[i] << "\t" << poi_chi_sq_stat_per_t[i] << "\t" << poi_chi_sq_pvalue_per_t[i];
-            message                 << "\t" << goe_chi_sq_stat_per_t[i] << "\t" << goe_chi_sq_pvalue_per_t[i] << "\n";
+        double poi_pvalue = -1;
+        double goe_pvalue = -1;
+        if(std::isnormal(poi_chi_sq_stat)){
+            poi_pvalue = alglib::chisquarecdistribution(no_bins -1, poi_chi_sq_stat);
         }
-    }
+        if(std::isnormal(goe_chi_sq_stat)){
+            goe_pvalue = alglib::chisquarecdistribution(no_bins -1, goe_chi_sq_stat);
+        }
 
-    return message.str();
-}
+        poi_chi_sq_pvalue_per_t[i_t] = poi_pvalue;
+        goe_chi_sq_pvalue_per_t[i_t] = goe_pvalue;
 
-
-std::string thresholdDensity(igraph_t &G,
-                     double l=0.1,
-                     double u=0.99,
-                     double increment=0.01,
-                     int minimumpartitionsize=3){
-
-    // initialise necessary stuff
-    igraph_integer_t E;            // number edges before threshold
-    igraph_integer_t new_E;        // number edges after threshold
-    igraph_integer_t V;            // number vertices
-
-    double density;
-
-    // get the threshold increments
-    double t;
-    static const std::vector<double> t_vector = range(l, u, increment);
-    int num_increments = t_vector.size();
-    std::cout << "Number steps: " << num_increments << std::endl;
-
-    // results go here
-    std::vector<double>  stat_per_t(num_increments); // density goes here
-
-    // keep track of which thresholds were tested
-    std::vector<bool> was_tested_per_t(num_increments, false);
-
-    E = igraph_ecount(&G);
-
-    for(int i_t=0; i_t < num_increments; i_t++){
-        t = t_vector[i_t];
-
-        std::cout << "\nStep: " << i_t << ", Threshold: " << t << std::flush;
-
-        // Threshold step
-        threshold_graph(t, G); 
+        ///////////////////////////////////////////////////////////////////////
+        was_tested_per_t[i_t] = true;
         
-        // make sure graph is large enough to continue
-        V = igraph_vcount(&G);
-        new_E = igraph_ecount(&G); 
+        ///////////////////////////////////////////////////////////////////////
+        // Percolation
+        ///////////////////////////////////////////////////////////////////////
 
-        if(new_E < E){
-            E = new_E;
-        }
-        else{
-            std::cout << " New number edges is not less than previous number of edges, skipping. " << std::flush;
-            continue;
-        }
-
-        if(V < minimumpartitionsize){ //not large enough 
-            std::cout <<" Graph too small, finished. " << std::flush;
-            break;
-        } 
-
-        std::cout << " Calculating density. " << std::flush;
-        density = 2.0 * E / (V * (V -1));
-        stat_per_t[i_t] = density;
-
-        was_tested_per_t[i_t] = true;
+        v_per_t[i_t] = V;
+        cc_count_per_t[i_t] = cc_count;
     }
-    std::cout << "\nDone\n" << std::endl;
+
+    ///////////////////////////////////////////////////////////////////////
+    // Maximal Clique Ratio
+    ///////////////////////////////////////////////////////////////////////
+
+    // Clique ratio between thresholds: p_t = x_t/x_(t-1), no value for x_m
+    int next_clique_num = clique_count_per_t[num_increments-1];
+    int clique_num;
+
+    for(int i = num_increments-2; i >= 0; i--){
+        if(was_tested_per_t[i]){
+            clique_num = clique_count_per_t[i];
+            clique_ratio_per_t[i] = (double)clique_num / (double)next_clique_num;
+            next_clique_num = clique_num;
+        }
+    }
 
     igraph_destroy(&G);
+    std::cout << "\nDone. \n" << std::endl;
 
-    // make results into a string
+    ///////////////////////////////////////////////////////////////////////
+    // Make results into a string
+    ///////////////////////////////////////////////////////////////////////
+
+    // heading
     std::stringstream message;
-    message << "threshold\tdensity\n";
-    for(int i=0; i < num_increments; i++){
+    message << "Threshold\t2nd-eigenvalue\tnumber-almost-disconnected-components"; 
+    message <<          "\tnumber-maximal-cliques\tmaximal-clique-ratio\tclique-number";
+    message <<          "\tdensity\tdensity-orig-V";
+    message <<          "\tpoisson-chi2\tpoisson-pvalue\tgoe-chi2\tgoe-pvalue";
+    message <<          "\tnumber-connected-components\tnumber-vertices";
+    message <<          "\tscale-free-KS\tscale-free-KS-p-value";
+    message <<          "\tlargest-cc-size";
+    message << "\n";
+    for(int i=0; i<was_tested_per_t.size(); i++){
         if(was_tested_per_t[i]){
-            message << t_vector[i] << "\t" <<  stat_per_t[i] << "\n";
+            message << t_vector[i] << "\t" << second_eigenvalue_per_t[i] << "\t" << spectral_components_per_t[i];
+            message <<                "\t" << clique_count_per_t[i] << "\t" << clique_ratio_per_t[i] << "\t" << clique_number_per_t[i];
+            message <<                "\t" << density_per_t[i] << "\t" << density_orig_V_per_t[i]; 
+            message <<                "\t" << poi_chi_sq_stat_per_t[i] << "\t" << poi_chi_sq_pvalue_per_t[i];
+            message <<                "\t" << goe_chi_sq_stat_per_t[i] << "\t" << goe_chi_sq_pvalue_per_t[i];
+            message <<                "\t" << cc_count_per_t[i] << "\t" << v_per_t[i];
+            message <<                "\t" << scale_free_KS_per_t[i] << "\t" << scale_free_pvalue_per_t[i];
+            message <<                 "\t" << largest_cc_size_per_t[i];
+            message << "\n";
         }
     }
 
     return message.str();
 }
-
 
 ///////////////////////////////////////////////////////////////////////////////
 //     Commandline arguments                                                 //
@@ -679,12 +490,6 @@ void help(std::string prog_name){
     std::cerr <<  "  -i  --increment                <value>            threshold increment (default 0.01)\n";
     std::cerr <<  "  -w  --windowsize               <value>            sliding window size for spectral method (default 5)\n";
     std::cerr <<  "  -p  --minimumpartitionsize     <value>            minimum size of graph or subgraph after thresholding (default 10)\n";
-    std::cerr <<  "  -m  --method                   [1|2|3|4]          method  (default = 1)\n";
-    std::cerr <<  "                                                         1 - Spectral method\n";
-    std::cerr <<  "                                                         2 - Clique ratio (generalised clique doubling)\n";
-    std::cerr <<  "                                                         3 - Density\n";
-    std::cerr <<  "                                                         4 - Percolation\n";
-    std::cerr <<  "                                                         5 - Random matrix theory (not implemented)\n";
     std::cerr <<  "  -h  --help                                        print this help and exit\n";
     std::cerr <<  "\n";
     exit(1);
@@ -700,7 +505,6 @@ int arguement_parser(int argc, char **argv,
         double &increment,
         int &windowsize,
         int &minimumpartitionsize,
-        int &method,
         std::string &outfile
         ){
 
@@ -715,7 +519,6 @@ int arguement_parser(int argc, char **argv,
             { "increment",              1,          NULL,        'i'}, 
             { "windowsize",             1,          NULL,        'w'},
             { "minimumpartitionsize",   1,          NULL,        'p'},
-            { "method",                 1,          NULL,        'm'},
             { "outfile",                1,          NULL,        'o'},
             { NULL, 0, NULL, 0 }
         };
@@ -748,10 +551,6 @@ int arguement_parser(int argc, char **argv,
             
             case 'w': // -w or --windowsize
                 windowsize=atoi(optarg);
-                break;
-
-             case 'm' : // -m or --method
-                method=atoi(optarg);
                 break;
  
             case 'p': // -p or --minimumpartitionsize
@@ -805,26 +604,23 @@ int main(int argc, char **argv){
     double increment=0.01;
     int windowsize=5;
     int minimumpartitionsize=10;
-    int method=1;
     std::string outfile_name;
 
-    arguement_parser(argc, argv, infile, l, u, increment, windowsize, minimumpartitionsize, method, outfile_name);
+    arguement_parser(argc, argv, infile, l, u, increment, windowsize, minimumpartitionsize, outfile_name);
 
-    //std::cout << "infile\t" << infile << "\n";
-    //std::cout << "lower\t" << lower << "\n";
-    //std::cout << "upper\t" << upper << "\n";
-    //std::cout << "increment\t" << increment << "\n";
-    //std::cout << "method\t" << method << "\n";
-    //std::cout << "outfile\t" << outfile << "\n";
+    std::cout << "\n------------------------------------------------\n";
+    std::cout << "input file: \t\t"         << infile << "\n";
+    std::cout << "lower threshold: \t"      << l << "\n";
+    std::cout << "upper threshold: \t"      << u << "\n";
+    std::cout << "threshold increment: \t"  << increment << "\n";
+    std::cout << "output file: \t\t"        << outfile_name << "\n";
+    std::cout << "------------------------------------------------\n";
 
     // check that thresholding range is good
     if(l>=u){
         std::cout << "Error in threshold limits: cannot have l >= u" << std::endl;
         return 0;
     }
-    
-    // check method num is in range
-    // TODO
 
     // turn on attribute handling
     // for igraph to handle edge weights
@@ -838,43 +634,12 @@ int main(int argc, char **argv){
 
     std::string message;
 
-    switch(method){
-        case 1 : message = thresholdSpectral(G,
+    message = thresholdAll(G,
                            l=l, 
                            u=u,
                            increment=increment,
                            windowsize=windowsize,
                            minimumpartitionsize=minimumpartitionsize);
-                 break;  
-        case 2 : message = thresholdCliqueDoubling(G,
-                           l=l,
-                           u=u,
-                           increment=increment,
-                           minimumpartitionsize=minimumpartitionsize);
-                 break;
-        case 3 : message = thresholdDensity(G, 
-                           l=l, 
-                           u=u,
-                           increment=increment,
-                           minimumpartitionsize=minimumpartitionsize);
-                 break;
-        case 4 : message = thresholdPercolation(G, 
-                           l=l, 
-                           u=u,
-                           increment=increment,
-                           minimumpartitionsize=minimumpartitionsize);
-                 break;
-        case 5 : message = thresholdRMT(G, 
-                           l=l, 
-                           u=u,
-                           increment=increment,
-                           minimumpartitionsize=minimumpartitionsize);
-                 break;
-
-        default : message =  "";
-                       std::cout << "\nNot a valid method selected.\n";
-    }
-
     output_results(outfile_name, message);
 
     return 0;

@@ -101,7 +101,7 @@ int threshold_graph(double t, igraph_t &G){
 }
 
 // Identify largest connected component of the graph and induce
-int largest_connected_component(igraph_t &G, igraph_t &G_cc){
+int largest_connected_component(igraph_t &G, igraph_t &G_cc, igraph_integer_t &cc_count){
     // See also igraph_decompose, but since we only need
     // the largest CC, there is no point inducing all CCs.
 
@@ -109,15 +109,14 @@ int largest_connected_component(igraph_t &G, igraph_t &G_cc){
     igraph_vector_init(&membership, 0);
     igraph_vector_t csize;
     igraph_vector_init(&csize, 0);
-    igraph_integer_t no; 
     
-    igraph_clusters(&G, &membership, &csize, &no, IGRAPH_STRONG);
+    igraph_clusters(&G, &membership, &csize, &cc_count, IGRAPH_STRONG);
         
     // iterate over csize to find largest CC
     int max_cc_size = 0;
     int max_cc_index;
     int this_cc_size;
-    for(int i =0; i<no; i++){
+    for(int i =0; i<cc_count; i++){
         this_cc_size = VECTOR(csize)[i];
         if(this_cc_size > max_cc_size){
             max_cc_index = i;
@@ -132,7 +131,7 @@ int largest_connected_component(igraph_t &G, igraph_t &G_cc){
     // check if there is more than on CC with max_cc_size
     // TODO what to do if there is more that 1?
     int num_max_cc = 0;
-    for(int i=0; i<no; i++){
+    for(int i=0; i<cc_count; i++){
         this_cc_size = VECTOR(csize)[i];
         if(this_cc_size == max_cc_size){
             num_max_cc++;
@@ -165,7 +164,7 @@ int largest_connected_component(igraph_t &G, igraph_t &G_cc){
 // Assume connected graph -> 2nd eigenvector
 int Fiedler_vector(igraph_t &G, igraph_vector_t &eigenvector, igraph_real_t &eigenvalue){
 
-    std::cout << " Attempting to get the Fiedler vector and value. " << std::flush;
+    //std::cout << " Attempting to get the Fiedler vector and value. " << std::flush;
     // make sure G has edges and that G is connected
     if(igraph_ecount(&G) < 1){
         std::cout << " Fielder failed: no edges " << std::endl;
@@ -197,10 +196,10 @@ int Fiedler_vector(igraph_t &G, igraph_vector_t &eigenvector, igraph_real_t &eig
     igraph_laplacian(&G, &laplacian, NULL, false, NULL);
 
     // Eigen decomposition for symmetric matrices using LAPACK
-    igraph_lapack_dsyevr(&laplacian, IGRAPH_LAPACK_DSYEV_SELECT, 0, 0, 0, 1, 2, 0.0, &values, &vectors, 0); 
+    igraph_lapack_dsyevr(&laplacian, IGRAPH_LAPACK_DSYEV_SELECT, 0, 0, 0, 1, 2, 1e-8, &values, &vectors, 0); 
 
     // should be 0.0 (or there abouts)
-    std::cout << " 1st eigenvalue: " << VECTOR(values)[0] << std::flush;
+    //std::cout << " 1st eigenvalue: " << VECTOR(values)[0] << std::flush;
 
     // set eigenvalue and eigenvector of interest
     eigenvalue = VECTOR(values)[1];

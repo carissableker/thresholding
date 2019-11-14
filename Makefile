@@ -1,14 +1,17 @@
 CC	    = g++
-FLAGS   = -std=c++11 -g  
 LIBS	= -ligraph 
-LIBDIR  = -L/usr/local/lib 
-INC     = -I/usr/local/include/igraph -I./include
+LIBDIR  = -L/usr/local/lib -L$(PWD)/include/igraph/lib
+INC     = -I./include -I$(PWD)/include/alglib -I$(PWD)/include/igraph/include/igraph
+FLAGS   = -std=c++11 -g -Wl,-rpath=$(PWD)/include/igraph/lib,$(LIBDIR)
 
 TARGET = bin/threshold
 
 SRCDIR = src
+INCLUDEDIR = include
 SRCEXT = cpp
-SOURCES = $(shell find $(SRCDIR) -type f -name *.$(SRCEXT))
+
+SOURCES =  $(shell find $(SRCDIR) -type f -name *.$(SRCEXT))
+SOURCES += $(shell find $(INCLUDEDIR)/alglib -type f -name *.$(SRCEXT))
 
 BUILDDIR = build
 OBJECTS = $(patsubst $(SRCDIR)/%,$(BUILDDIR)/%,$(SOURCES:.$(SRCEXT)=.o))
