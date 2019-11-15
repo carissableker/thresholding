@@ -72,6 +72,7 @@ std::string thresholdAll(igraph_t &G,
     std::vector<double>  v_per_t(num_increments); 
     std::vector<int>    cc_count_per_t(num_increments);
     std::vector<int>    largest_cc_size_per_t(num_increments);
+    std::vector<int>    largest2_cc_size_per_t(num_increments);
 
 
     std::vector<double> scale_free_pvalue_per_t(num_increments);
@@ -134,13 +135,13 @@ std::string thresholdAll(igraph_t &G,
         // Maximal Clique Number
         ///////////////////////////////////////////////////////////////////////
 
-        // igraph_integer_t clique_count;      // number maximal cliques
-        // igraph_integer_t clique_number;     // clique count / maxium clique size
+        igraph_integer_t clique_count;      // number maximal cliques
+        igraph_integer_t clique_number;     // clique count / maxium clique size
 
-        // igraph_maximal_cliques_count(&G, &clique_count, minimum_cliquesize, 0);
-        // clique_count_per_t[i_t] = clique_count;
-        // igraph_clique_number(&G, &clique_number);
-        // clique_number_per_t[i_t] = clique_number;
+        igraph_maximal_cliques_count(&G, &clique_count, minimum_cliquesize, 0);
+        clique_count_per_t[i_t] = clique_count;
+        igraph_clique_number(&G, &clique_number);
+        clique_number_per_t[i_t] = clique_number;
 
         ///////////////////////////////////////////////////////////////////////
         // Scale free
@@ -170,15 +171,12 @@ std::string thresholdAll(igraph_t &G,
         // Get largest connected component
         igraph_t G_cc;
         igraph_integer_t cc_count;
-        largest_connected_component(G, G_cc, cc_count);
-
-		// make sure largest connected component is large enough to continue
         igraph_integer_t V_cc;      // number vertices in LCC
-        V_cc = igraph_vcount(&G_cc); 
-        //std::cout << " V_cc " << V_cc;
-        
-        largest_cc_size_per_t[i_t] = V_cc;
+        igraph_integer_t V2_cc;
+        largest_connected_component(G, G_cc, cc_count, V_cc, V2_cc);
 
+        largest_cc_size_per_t[i_t] = V_cc;
+        largest2_cc_size_per_t[i_t] = V2_cc;
 
         int number_clusters = 1;
 
@@ -449,13 +447,13 @@ std::string thresholdAll(igraph_t &G,
 
     // heading
     std::stringstream message;
-    message << "Threshold\t2nd-eigenvalue\tnumber-almost-disconnected-components"; 
+    message << "threshold\t2nd-eigenvalue\tnumber-almost-disconnected-components"; 
     message <<          "\tnumber-maximal-cliques\tmaximal-clique-ratio\tclique-number";
     message <<          "\tdensity\tdensity-orig-V";
     message <<          "\tpoisson-chi2\tpoisson-pvalue\tgoe-chi2\tgoe-pvalue";
     message <<          "\tnumber-connected-components\tnumber-vertices";
     message <<          "\tscale-free-KS\tscale-free-KS-p-value";
-    message <<          "\tlargest-cc-size";
+    message <<          "\tlargest-cc-size\t2nd-largest-cc-size";
     message << "\n";
     for(int i=0; i<was_tested_per_t.size(); i++){
         if(was_tested_per_t[i]){
@@ -466,7 +464,7 @@ std::string thresholdAll(igraph_t &G,
             message <<                "\t" << goe_chi_sq_stat_per_t[i] << "\t" << goe_chi_sq_pvalue_per_t[i];
             message <<                "\t" << cc_count_per_t[i] << "\t" << v_per_t[i];
             message <<                "\t" << scale_free_KS_per_t[i] << "\t" << scale_free_pvalue_per_t[i];
-            message <<                 "\t" << largest_cc_size_per_t[i];
+            message <<                 "\t" << largest_cc_size_per_t[i] << "\t" << largest2_cc_size_per_t[i];
             message << "\n";
         }
     }

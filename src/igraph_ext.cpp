@@ -101,7 +101,8 @@ int threshold_graph(double t, igraph_t &G){
 }
 
 // Identify largest connected component of the graph and induce
-int largest_connected_component(igraph_t &G, igraph_t &G_cc, igraph_integer_t &cc_count){
+int largest_connected_component(igraph_t &G, igraph_t &G_cc, igraph_integer_t &cc_count, 
+                                igraph_integer_t &V_cc, igraph_integer_t &V2_cc){
     // See also igraph_decompose, but since we only need
     // the largest CC, there is no point inducing all CCs.
 
@@ -113,37 +114,46 @@ int largest_connected_component(igraph_t &G, igraph_t &G_cc, igraph_integer_t &c
     igraph_clusters(&G, &membership, &csize, &cc_count, IGRAPH_STRONG);
         
     // iterate over csize to find largest CC
-    int max_cc_size = 0;
+    V_cc = 0;
     int max_cc_index;
     int this_cc_size;
     for(int i =0; i<cc_count; i++){
         this_cc_size = VECTOR(csize)[i];
-        if(this_cc_size > max_cc_size){
+        if(this_cc_size > V_cc){
             max_cc_index = i;
-            max_cc_size = this_cc_size;
+            V_cc = this_cc_size;
         }
      }
 
-    if(max_cc_size < 2){
+    if(V_cc < 2){
         return 0;
     }
 
     // check if there is more than on CC with max_cc_size
     // TODO what to do if there is more that 1?
-    int num_max_cc = 0;
-    for(int i=0; i<cc_count; i++){
+    //int num_max_cc = 0;
+    //for(int i=0; i<cc_count; i++){
+    //    this_cc_size = VECTOR(csize)[i];
+    //    if(this_cc_size == max_cc_size){
+    //        num_max_cc++;
+    //    } 
+    //}
+
+    // get the size of the second largest CC
+    V2_cc = 0;
+    for(int i =0; i<cc_count; i++){
         this_cc_size = VECTOR(csize)[i];
-        if(this_cc_size == max_cc_size){
-            num_max_cc++;
-        } 
-    }
+        if( (this_cc_size > V2_cc) && (this_cc_size < V_cc) ){
+            V2_cc = this_cc_size;
+        }
+     }    
 
     // identified largest CC, now collect its vertices
     igraph_vector_t vertices_in_cc;
-    igraph_vector_init(&vertices_in_cc, max_cc_size);
+    igraph_vector_init(&vertices_in_cc, V_cc);
 
     int j = 0; // index in vertices_in_cc
-    for(int i=0; j<max_cc_size; i++){
+    for(int i=0; j<V_cc; i++){
         if(VECTOR(membership)[i] == max_cc_index){
             VECTOR(vertices_in_cc)[j] = i;
             j += 1;

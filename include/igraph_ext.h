@@ -31,7 +31,8 @@ int threshold_graph(double, igraph_t &);
 
 // Identify largest connected component of the graph and induce
 // Also return number of CC
-int largest_connected_component(igraph_t &, igraph_t &, igraph_integer_t &);
+int largest_connected_component(igraph_t &, igraph_t &, igraph_integer_t &, 
+	igraph_integer_t &, igraph_integer_t &);
 
 // Fiedler vector: eigen-vector corresponding to first non-zero eigen-value
 // Assume connected graph -> 2nd eigenvector
