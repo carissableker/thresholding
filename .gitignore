@@ -1,0 +1,11 @@
+.ipynb_checkpoints/
+*.ipynb
+example_graphs/
+thresholding.sublime-project
+thresholding.sublime-workspace
+
+callgrind*
+*.old
+.Rhistory
+build/*.o
+lib/lib*
