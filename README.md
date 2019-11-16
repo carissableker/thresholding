@@ -1,16 +1,45 @@
 # thresholding
 
-
 Repository for thresholding code. 
 
+## Installation
 
-## To compile:
+Compiling also installs [igraph](igraph.org/c/)-0.7.1, so you will need to have
+igraph dependency (libxml2) installed beforehand (see below). 
 
-Depends on [igraph](igraph.org/c/).  
+    git clone git@github.com:carissableker/thresholding.git
+    cd thresholding
+
+The dev branch is the only branch that works at the moment:
+
+    git checkout dev
+    git pull origin dev
+
+To compile: 
 
     make
 
-## To use:
+Executable will be in `bin` folder. 
+
+### Optional instructions for libxml2:
+
+If libxml is not already installed, the following is one way of installing it. 
+Another (easier) option is `apt-get`. 
+
+    wget ftp://xmlsoft.org/libxml2/libxml2-<version>.tar.gz
+    tar -xzvf libxml2-<version>.tar.gz 
+    ./configure  --without-python --prefix=/my_optional path/
+    make
+    make install
+
+And if you used a prefix: 
+
+    echo 'export PATH="/my_optional_path/bin:$PATH"
+    export LD_LIBRARY_PATH="/my_optional_path/lib:$LD_LIBRARY_PATH"
+    export LD_RUN_PATH="/my_optional_path/lib:$LD_RUN_PATH"' >> ~/.bashrc
+    source ~/.bashrc
+
+## Usage
 
     ./threshold --help
      
@@ -25,14 +54,8 @@ Depends on [igraph](igraph.org/c/).
       -l  --lower                    <value>            lower bound on thresholds to test (default 0.5)
       -u  --upper                    <value>            upper bound on thresholds to test (default 0.99)
       -i  --increment                <value>            threshold increment (default 0.01)
-      -w  --windowsize               <value>            sliding window size for spectral method (default )5
+      -w  --windowsize               <value>            sliding window size for spectral method (default 5)
       -p  --minimumpartitionsize     <value>            minimum size of graph or subgraph after thresholding (default 5)
-      -m  --method                   [1|2|3|4]          method  (default = 1)
-                                                             1 - Spectral method
-                                                             2 - Clique ratio (generalised clique doubling)
-		                                          			 3 - Density
-                                                             4 - Percolation (not implemented)
-                                                             5 - Random matrix theory (not implemented)
       -h  --help                                        print this help and exit
 
 
