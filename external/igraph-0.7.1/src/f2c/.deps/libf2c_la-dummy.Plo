@@ -1,0 +1,3 @@
+f2c/libf2c_la-dummy.lo: f2c/dummy.c /usr/include/stdc-predef.h
+
+/usr/include/stdc-predef.h:

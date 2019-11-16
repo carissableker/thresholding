@@ -1,0 +1,6 @@
+../optional/glpk/libglpk_la-glpqmd.lo: ../optional/glpk/glpqmd.c \
+ /usr/include/stdc-predef.h ../optional/glpk/glpqmd.h
+
+/usr/include/stdc-predef.h:
+
+../optional/glpk/glpqmd.h:

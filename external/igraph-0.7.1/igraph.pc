@@ -1,0 +1,12 @@
+prefix=/home/cbleker/research/Thresholding/thresholding/build
+exec_prefix=${prefix}
+libdir=/home/cbleker/research/Thresholding/thresholding/lib
+includedir=${prefix}/include
+
+Name: libigraph
+Description: A library for creating and manipulating graphs
+Version: 0.7.1
+URL: http://igraph.org
+Libs: -L${libdir} -ligraph
+Libs.private: -lxml2 -lz -lm -lgmp
+Cflags: -I${includedir}/igraph
