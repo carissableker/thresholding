@@ -9,3 +9,4 @@ callgrind*
 .Rhistory
 build/*.o
 lib/lib*
+*o

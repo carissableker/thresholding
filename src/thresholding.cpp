@@ -74,7 +74,6 @@ std::string thresholdAll(igraph_t &G,
     std::vector<int>    largest_cc_size_per_t(num_increments);
     std::vector<int>    largest2_cc_size_per_t(num_increments);
 
-
     std::vector<double> scale_free_pvalue_per_t(num_increments);
     std::vector<double> scale_free_KS_per_t(num_increments);
 
@@ -192,6 +191,13 @@ std::string thresholdAll(igraph_t &G,
 
             // do the sort and step thing with the eigenvector
             igraph_vector_sort(&eigenvector);
+
+            // std::cout << std::endl;
+            // for(int vi=0; vi<V_cc; vi++){
+            //     std::cout << "eigenv\t" << vi <<"\t"<< VECTOR(eigenvector)[vi] << "\n";
+            // }
+            // std::cout << std::endl;
+
     		rolling_difference_igraph(eigenvector, window_differences, windowsize);
 
             double tol = mean(window_differences) + stddev(window_differences)/2.0;
@@ -212,6 +218,7 @@ std::string thresholdAll(igraph_t &G,
                         // end the last cluster, add it to the number of clusters if it is large enough
                         if(cluster_end - cluster_begin >= minimumpartitionsize){
                             number_clusters = number_clusters+1;
+                            //std::cout << "cluster\t" << cluster_begin << "\t" << cluster_end << "\n";
                         }
                     }
                     // else we're already in the step, so do nothing
