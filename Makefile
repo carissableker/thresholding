@@ -11,8 +11,9 @@ SRCEXT	= cpp
 
 INCLUDEDIR	 = $(PWD)/include
 LIBDIR 		= $(PWD)/lib
-BUILDDIR = $(PWD)/build
-IGRAPHDIR  = $(PWD)/external/igraph-0.7.1
+BUILDDIR 	= $(PWD)/build
+EXTERNALDIR = $(PWD)/external/
+IGRAPHDIR   = igraph-0.7.1
 
 SOURCES  =  $(shell find $(SRCDIR) -xtype f -name "*".$(SRCEXT))
 OBJECTS = $(patsubst $(SRCDIR)/%,$(BUILDDIR)/%,$(SOURCES:.$(SRCEXT)=.o))
@@ -29,6 +30,8 @@ $(BUILDDIR)/%.o: $(SRCDIR)/%.$(SRCEXT) igraph
 
 .PHONY: igraph 
 igraph:
+	cd $(EXTERNALDIR) && \
+	tar zxvf $(IGRAPHDIR).tar.gz && \
 	cd $(IGRAPHDIR) && \
 	./configure --libdir=$(LIBDIR) --prefix=$(BUILDDIR) && \
 	$(MAKE) && \
