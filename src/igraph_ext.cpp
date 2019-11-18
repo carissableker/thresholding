@@ -5,7 +5,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 // Read in graph
-int read_graph(std::string &graph_file_path, igraph_t& G){
+int read_graph(std::string &graph_file_path, igraph_t& G, igraph_add_weights_t is_weighted){
 
     FILE *graph_file;
     graph_file = fopen(graph_file_path.c_str(), "r"); 
@@ -17,7 +17,7 @@ int read_graph(std::string &graph_file_path, igraph_t& G){
     }
 
     // Read in file as graph
-    igraph_read_graph_ncol(&G, graph_file, NULL, false, IGRAPH_ADD_WEIGHTS_YES, IGRAPH_UNDIRECTED);
+    igraph_read_graph_ncol(&G, graph_file, NULL, false, is_weighted, IGRAPH_UNDIRECTED);
 
     fclose(graph_file);
     

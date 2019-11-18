@@ -24,7 +24,7 @@ $(info $(OBJECTS))
 $(TARGET): $(OBJECTS)
 	$(CC) -o $@ $^ $(FLAGS) $(LIBS)
 
-$(BUILDDIR)/%.o: $(SRCDIR)/%.$(SRCEXT) igraph
+$(BUILDDIR)/%.o: $(SRCDIR)/%.$(SRCEXT)#igraph
 	@mkdir -p $(BUILDDIR)
 	$(CC) -c -o $@ $< $(FLAGS) $(INC) $(LIBDIRS) $(LIBS)
 

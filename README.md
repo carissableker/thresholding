@@ -23,8 +23,8 @@ Executable will be in `bin` folder.
 
 ### Optional instructions for libxml2:
 
-If libxml is not already installed, the following is one way of installing it. 
-Another (easier) option is `apt-get`. 
+If libxml2 is not already installed, the following is one way of installing it. 
+Another (preferable and easier) option is `apt-get`. 
 
     wget ftp://xmlsoft.org/libxml2/libxml2-<version>.tar.gz
     tar -xzvf libxml2-<version>.tar.gz 

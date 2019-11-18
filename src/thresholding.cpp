@@ -70,12 +70,18 @@ std::string thresholdAll(igraph_t &G,
     std::vector<double> goe_chi_sq_pvalue_per_t(num_increments);
 
     std::vector<double>  v_per_t(num_increments); 
+    std::vector<double>  e_per_t(num_increments); 
+
     std::vector<int>    cc_count_per_t(num_increments);
     std::vector<int>    largest_cc_size_per_t(num_increments);
     std::vector<int>    largest2_cc_size_per_t(num_increments);
 
     std::vector<double> scale_free_pvalue_per_t(num_increments);
     std::vector<double> scale_free_KS_per_t(num_increments);
+
+    std::vector<double> graph_clustering_coefficient_per_t(num_increments);
+    std::vector<double> random_graph_clustering_coefficient_per_t(num_increments);
+
 
     // keep track of which thresholds were tested
     std::vector<bool> was_tested_per_t(num_increments, false);
@@ -115,12 +121,14 @@ std::string thresholdAll(igraph_t &G,
             break;
         } 
 
-        if(new_E < E){
-            E = new_E;
-        }
-        else{
-            std::cout << " New number edges is not less than previous number of edges, skipping. " << std::endl;
-            continue;
+        if(i_t > 0){
+            if(new_E < E){
+                E = new_E;
+            }
+            else{
+                std::cout << " New number edges is not less than previous number of edges, skipping. " << std::endl;
+                continue;
+            }
         }
 
         ///////////////////////////////////////////////////////////////////////
@@ -418,15 +426,37 @@ std::string thresholdAll(igraph_t &G,
         poi_chi_sq_pvalue_per_t[i_t] = poi_pvalue;
         goe_chi_sq_pvalue_per_t[i_t] = goe_pvalue;
 
-        ///////////////////////////////////////////////////////////////////////
-        was_tested_per_t[i_t] = true;
-        
+
         ///////////////////////////////////////////////////////////////////////
         // Percolation
         ///////////////////////////////////////////////////////////////////////
 
         v_per_t[i_t] = V;
+        e_per_t[i_t] = E;
         cc_count_per_t[i_t] = cc_count;
+
+        ///////////////////////////////////////////////////////////////////////
+        // Clustering coefficient
+        ///////////////////////////////////////////////////////////////////////
+
+        igraph_real_t graph_clustering_coefficient;
+        igraph_transitivity_undirected(&G, &graph_clustering_coefficient, IGRAPH_TRANSITIVITY_NAN); 
+  
+        igraph_t random_G;
+        igraph_copy(&random_G, &G);
+        igraph_rewire(&random_G, 2*E, IGRAPH_REWIRING_SIMPLE);
+
+        igraph_real_t random_graph_clustering_coefficient;
+        igraph_transitivity_undirected(&random_G, &random_graph_clustering_coefficient, IGRAPH_TRANSITIVITY_NAN); 
+
+        graph_clustering_coefficient_per_t[i_t] = graph_clustering_coefficient;
+        random_graph_clustering_coefficient_per_t[i_t] = random_graph_clustering_coefficient;
+
+
+        
+        ///////////////////////////////////////////////////////////////////////
+        was_tested_per_t[i_t] = true;
+              
     }
 
     ///////////////////////////////////////////////////////////////////////
@@ -458,9 +488,10 @@ std::string thresholdAll(igraph_t &G,
     message <<          "\tnumber-maximal-cliques\tmaximal-clique-ratio\tclique-number";
     message <<          "\tdensity\tdensity-orig-V";
     message <<          "\tpoisson-chi2\tpoisson-pvalue\tgoe-chi2\tgoe-pvalue";
-    message <<          "\tnumber-connected-components\tnumber-vertices";
+    message <<          "\tnumber-connected-components\tnumber-vertices\tnumber-edges";
     message <<          "\tscale-free-KS\tscale-free-KS-p-value";
     message <<          "\tlargest-cc-size\t2nd-largest-cc-size";
+    message <<          "\tclustering-coefficient\trandom-clustering-coefficient";
     message << "\n";
     for(int i=0; i<was_tested_per_t.size(); i++){
         if(was_tested_per_t[i]){
@@ -469,9 +500,11 @@ std::string thresholdAll(igraph_t &G,
             message <<                "\t" << density_per_t[i] << "\t" << density_orig_V_per_t[i]; 
             message <<                "\t" << poi_chi_sq_stat_per_t[i] << "\t" << poi_chi_sq_pvalue_per_t[i];
             message <<                "\t" << goe_chi_sq_stat_per_t[i] << "\t" << goe_chi_sq_pvalue_per_t[i];
-            message <<                "\t" << cc_count_per_t[i] << "\t" << v_per_t[i];
+
+            message <<                "\t" << cc_count_per_t[i] << "\t" << v_per_t[i] << "\t" << e_per_t[i];
             message <<                "\t" << scale_free_KS_per_t[i] << "\t" << scale_free_pvalue_per_t[i];
-            message <<                 "\t" << largest_cc_size_per_t[i] << "\t" << largest2_cc_size_per_t[i];
+            message <<                "\t" << largest_cc_size_per_t[i] << "\t" << largest2_cc_size_per_t[i];
+            message <<                "\t" << graph_clustering_coefficient_per_t[i] << "\t" << random_graph_clustering_coefficient_per_t[i];
             message << "\n";
         }
     }
@@ -634,7 +667,7 @@ int main(int argc, char **argv){
     // Load graph
     igraph_t G;
     std::cout << "Loading graph ... " << std::flush;
-    read_graph(infile, G);
+    read_graph(infile, G, IGRAPH_ADD_WEIGHTS_YES);
     std::cout << "done." << std::endl;
 
     std::string message;
