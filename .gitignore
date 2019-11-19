@@ -1,0 +1,9 @@
+example_graphs/
+inprogress/
+test_results/
+thresholding.sublime-project
+thresholding.sublime-workspace
+
+callgrind*
+build/*.o
+lib/lib*
