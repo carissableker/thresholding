@@ -58,4 +58,10 @@ And if you used a prefix:
       -p  --minimumpartitionsize     <value>            minimum size of graph or subgraph after thresholding (default 5)
       -h  --help                                        print this help and exit
 
+## To do:
+
+* Change Chi2 test of GOE to KS test for continuous distributions
+
+
+
 
