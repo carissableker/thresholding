@@ -1,6 +1,7 @@
 .ipynb_checkpoints/
 *.ipynb
 example_graphs/
+inprogress/
 thresholding.sublime-project
 thresholding.sublime-workspace
 

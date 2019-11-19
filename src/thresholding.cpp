@@ -328,6 +328,9 @@ std::string thresholdAll(igraph_t &G,
         std::sort(NNSD.begin(), NNSD.end());
 
         // Need to discretise continuous NNSD
+        // Use histogram equalization:
+        // observed bin frequency, will always be 5 (execpt for last bin)
+
         double bin_start = 0;
         double bin_end = 0;
 
@@ -335,7 +338,6 @@ std::string thresholdAll(igraph_t &G,
         std::vector<double> bin_end_vector;
         std::vector<double> bin_count_vector;
 
-        // observed bin frequency, will always be 5 (execpt for last bin)
         float observed_count = 5;
         double expected_count;
         
@@ -383,45 +385,53 @@ std::string thresholdAll(igraph_t &G,
 
                 NNSD_i = h;
             }
-
         }
+
+
+        int dof = no_bins -1;
+        
         double poi_chi_sq_stat = 0;
         double goe_chi_sq_stat = 0;
 
-        for(int b=0; b<no_bins; b++){
+        double poi_pvalue = -1;
+        double goe_pvalue = -1;
 
-            bin_start = bin_start_vector[b];
-            bin_end = bin_end_vector[b];
-            observed_count = bin_count_vector[b];
+        if(dof > 1){
 
-            //std::cout << b << "\t" << bin_start << "\t " << bin_end << "\t " << observed_count << "\t ";
+            for(int b=0; b<no_bins; b++){
 
-            // If Poisson, then 
-            expected_count = NNSD_size * ( poisson(bin_start, bin_end) );
-            poi_chi_sq_stat += pow(observed_count - expected_count, 2) / expected_count;
-            //std::cout << expected_count << "\t ";
+                bin_start = bin_start_vector[b];
+                bin_end = bin_end_vector[b];
+                observed_count = bin_count_vector[b];
 
-            // If GOE, then
-            expected_count = NNSD_size * ( goe(bin_start, bin_end) );
-            goe_chi_sq_stat += pow(observed_count - expected_count, 2) / expected_count;
-            //std::cout << expected_count << std::endl;
+                //std::cout << b << "\t" << bin_start << "\t " << bin_end << "\t " << observed_count << "\t ";
+
+                // If Poisson, then 
+                expected_count = NNSD_size * ( poisson(bin_start, bin_end) );
+                poi_chi_sq_stat += pow(observed_count - expected_count, 2) / expected_count;
+                //std::cout << expected_count << "\t ";
+
+                // If GOE, then
+                expected_count = NNSD_size * ( goe(bin_start, bin_end) );
+                goe_chi_sq_stat += pow(observed_count - expected_count, 2) / expected_count;
+                //std::cout << expected_count << std::endl;
+            }
+
+
+
+            // p-value = area under right hand tail
+            // http://www.alglib.net/specialfunctions/distributions/chisquare.php
+
+            if(std::isnormal(poi_chi_sq_stat)){
+                poi_pvalue = alglib::chisquarecdistribution(dof, poi_chi_sq_stat);
+            }
+            if(std::isnormal(goe_chi_sq_stat)){
+                goe_pvalue = alglib::chisquarecdistribution(dof, goe_chi_sq_stat);
+            }
         }
 
         poi_chi_sq_stat_per_t[i_t] = poi_chi_sq_stat;
         goe_chi_sq_stat_per_t[i_t] = goe_chi_sq_stat;
-
-        // df = no_bins - 1
-        // p-value = area under right hand tail
-        // http://www.alglib.net/specialfunctions/distributions/chisquare.php
-
-        double poi_pvalue = -1;
-        double goe_pvalue = -1;
-        if(std::isnormal(poi_chi_sq_stat)){
-            poi_pvalue = alglib::chisquarecdistribution(no_bins -1, poi_chi_sq_stat);
-        }
-        if(std::isnormal(goe_chi_sq_stat)){
-            goe_pvalue = alglib::chisquarecdistribution(no_bins -1, goe_chi_sq_stat);
-        }
 
         poi_chi_sq_pvalue_per_t[i_t] = poi_pvalue;
         goe_chi_sq_pvalue_per_t[i_t] = goe_pvalue;
