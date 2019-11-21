@@ -10,11 +10,6 @@ igraph dependency (libxml2) installed beforehand (see below).
     git clone git@github.com:carissableker/thresholding.git
     cd thresholding
 
-The dev branch is the only branch that works at the moment:
-
-    git checkout dev
-    git pull origin dev
-
 To compile: 
 
     make
