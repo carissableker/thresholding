@@ -28,20 +28,35 @@
 ///////////////////////////////////////////////////////////////////////////////
 // TODO: DRY
 
-std::string thresholdAll(igraph_t &G,
-                     double l=0.5,
-                     double u=0.99,
-                     double increment=0.01,
-                     int windowsize=5,
-                     int minimumpartitionsize=10, 
-                     int minimum_cliquesize=3){
-    
-    // compare window size to minimumpartionsize
-    if(minimumpartitionsize <= windowsize){
-        std::cout << " Warning: cannot have minimumpartitionsize <= spectral_minimumpartitionsize. Using windowsize = 5 and spectral_minimumpartitionsize = 10." << std::endl;
-        minimumpartitionsize = 10;
-        windowsize = 5;
-    }
+
+
+
+
+int thresholdAll(std::string& outfile_name,
+                         igraph_t &G,
+                         double l=0.5,
+                         double u=0.99,
+                         double increment=0.01,
+                         int windowsize=5,
+                         int minimumpartitionsize=10, 
+                         int minimum_cliquesize=3){
+    // ready out file
+    std::ofstream out;
+    out.open(outfile_name.c_str());
+
+    // output header 
+    std::stringstream header;
+    header << "threshold\t2nd-eigenvalue\tnumber-almost-disconnected-components"; 
+    header <<          "\tnumber-maximal-cliques\tclique-number";
+    header <<          "\tdensity\tdensity-orig-V";
+    header <<          "\tpoisson-chi2\tpoisson-pvalue\tgoe-chi2\tgoe-pvalue";
+    header <<          "\tnumber-connected-components\tnumber-vertices\tnumber-edges";
+    header <<          "\tscale-free-KS\tscale-free-KS-p-value";
+    header <<          "\tlargest-cc-size\t2nd-largest-cc-size";
+    header <<          "\tclustering-coefficient\trandom-clustering-coefficient";
+    header << "\n";
+
+    out << header.str(); 
 
     // get the threshold increments
     double t;
@@ -56,7 +71,6 @@ std::string thresholdAll(igraph_t &G,
     std::vector<int>  spectral_components_per_t(num_increments);
     std::vector<double> second_eigenvalue_per_t(num_increments);
 
-    std::vector<double>  clique_ratio_per_t(num_increments); //ratios go here
     std::vector<int>     clique_count_per_t(num_increments);
     std::vector<int>     clique_number_per_t(num_increments);
 
@@ -95,6 +109,9 @@ std::string thresholdAll(igraph_t &G,
     igraph_integer_t V;         // number vertices
     double orig_max_E;          // Max number edges based on original number of vertices
     
+
+    igraph_integer_t prev_clique_count = 0;
+
     ///////////////////////////////////////////////////////////////////////
     // Start thresholding loop:
     ///////////////////////////////////////////////////////////////////////
@@ -131,13 +148,7 @@ std::string thresholdAll(igraph_t &G,
             }
         }
 
-        ///////////////////////////////////////////////////////////////////////
-        // Density
-        ///////////////////////////////////////////////////////////////////////
-        
-        density_per_t[i_t] = 2.0 * (double) E / (V * (V -1));;
-        density_orig_V_per_t[i_t] = 2.0 * E / orig_max_E;
-        
+
         ///////////////////////////////////////////////////////////////////////
         // Maximal Clique Number
         ///////////////////////////////////////////////////////////////////////
@@ -149,6 +160,14 @@ std::string thresholdAll(igraph_t &G,
         clique_count_per_t[i_t] = clique_count;
         igraph_clique_number(&G, &clique_number);
         clique_number_per_t[i_t] = clique_number;
+    
+        ///////////////////////////////////////////////////////////////////////
+        // Density
+        ///////////////////////////////////////////////////////////////////////
+        
+        density_per_t[i_t] = 2.0 * (double) E / (V * (V -1));;
+        density_orig_V_per_t[i_t] = 2.0 * E / orig_max_E;
+        
 
         ///////////////////////////////////////////////////////////////////////
         // Scale free
@@ -294,17 +313,8 @@ std::string thresholdAll(igraph_t &G,
 
         std::vector<double> cdf = ecdf(eigenvalues_sorted, t);
 
-        //for (int i=0; i < cdf.size(); i++){
-        //    std::cout << "\n" << i << "\t" << t[i] << "\t" << cdf[i];
-        //}
-
-
         // Find smooth distribution of eigenvalues by fitting a spline to the CDF and evaluating at eigenvalues values
         std::vector<double> new_cdf = spline(t, cdf, eigenvalues_sorted); 
-
-        //for (int i=0; i < new_cdf.size(); i++){
-        //    std::cout << "\n" << i << "\t" << eigenvalues_sorted[i] << "\t" << new_cdf[i];
-        //}
 
         // NNSD 
         std::vector<double> NNSD;
@@ -387,7 +397,6 @@ std::string thresholdAll(igraph_t &G,
             }
         }
 
-
         int dof = no_bins -1;
         
         double poi_chi_sq_stat = 0;
@@ -461,65 +470,40 @@ std::string thresholdAll(igraph_t &G,
 
         graph_clustering_coefficient_per_t[i_t] = graph_clustering_coefficient;
         random_graph_clustering_coefficient_per_t[i_t] = random_graph_clustering_coefficient;
-
-
-        
+      
         ///////////////////////////////////////////////////////////////////////
         was_tested_per_t[i_t] = true;
-              
+
+        ///////////////////////////////////////////////////////////////////////
+        // Make results into a string
+        ///////////////////////////////////////////////////////////////////////
+
+        // message 
+        std::stringstream message;
+        message << t_vector[i_t];
+        message << "\t" << second_eigenvalue_per_t[i_t] << "\t" << spectral_components_per_t[i_t];
+        message << "\t" << clique_count_per_t[i_t] << "\t" << clique_number_per_t[i_t];
+        message << "\t" << density_per_t[i_t] << "\t" << density_orig_V_per_t[i_t]; 
+        message << "\t" << poi_chi_sq_stat_per_t[i_t] << "\t" << poi_chi_sq_pvalue_per_t[i_t];
+        message << "\t" << goe_chi_sq_stat_per_t[i_t] << "\t" << goe_chi_sq_pvalue_per_t[i_t];
+        message << "\t" << cc_count_per_t[i_t] << "\t" << v_per_t[i_t] << "\t" << e_per_t[i_t];
+        message << "\t" << scale_free_KS_per_t[i_t] << "\t" << scale_free_pvalue_per_t[i_t];
+        message << "\t" << largest_cc_size_per_t[i_t] << "\t" << largest2_cc_size_per_t[i_t];
+        message << "\t" << graph_clustering_coefficient_per_t[i_t] << "\t" << random_graph_clustering_coefficient_per_t[i_t];
+        message << std::endl;
+        
+        out << message.str();
+    
     }
 
-    ///////////////////////////////////////////////////////////////////////
-    // Maximal Clique Ratio
-    ///////////////////////////////////////////////////////////////////////
-
-    // Clique ratio between thresholds: p_t = x_t/x_(t-1), no value for x_m
-    int next_clique_num = clique_count_per_t[num_increments-1];
-    int clique_num;
-
-    for(int i = num_increments-2; i >= 0; i--){
-        if(was_tested_per_t[i]){
-            clique_num = clique_count_per_t[i];
-            clique_ratio_per_t[i] = (double)clique_num / (double)next_clique_num;
-            next_clique_num = clique_num;
-        }
-    }
-
+    
     igraph_destroy(&G);
+
+    out.close();
+
     std::cout << "\nDone. \n" << std::endl;
 
-    ///////////////////////////////////////////////////////////////////////
-    // Make results into a string
-    ///////////////////////////////////////////////////////////////////////
-
-    // heading
-    std::stringstream message;
-    message << "threshold\t2nd-eigenvalue\tnumber-almost-disconnected-components"; 
-    message <<          "\tnumber-maximal-cliques\tmaximal-clique-ratio\tclique-number";
-    message <<          "\tdensity\tdensity-orig-V";
-    message <<          "\tpoisson-chi2\tpoisson-pvalue\tgoe-chi2\tgoe-pvalue";
-    message <<          "\tnumber-connected-components\tnumber-vertices\tnumber-edges";
-    message <<          "\tscale-free-KS\tscale-free-KS-p-value";
-    message <<          "\tlargest-cc-size\t2nd-largest-cc-size";
-    message <<          "\tclustering-coefficient\trandom-clustering-coefficient";
-    message << "\n";
-    for(int i=0; i<was_tested_per_t.size(); i++){
-        if(was_tested_per_t[i]){
-            message << t_vector[i] << "\t" << second_eigenvalue_per_t[i] << "\t" << spectral_components_per_t[i];
-            message <<                "\t" << clique_count_per_t[i] << "\t" << clique_ratio_per_t[i] << "\t" << clique_number_per_t[i];
-            message <<                "\t" << density_per_t[i] << "\t" << density_orig_V_per_t[i]; 
-            message <<                "\t" << poi_chi_sq_stat_per_t[i] << "\t" << poi_chi_sq_pvalue_per_t[i];
-            message <<                "\t" << goe_chi_sq_stat_per_t[i] << "\t" << goe_chi_sq_pvalue_per_t[i];
-
-            message <<                "\t" << cc_count_per_t[i] << "\t" << v_per_t[i] << "\t" << e_per_t[i];
-            message <<                "\t" << scale_free_KS_per_t[i] << "\t" << scale_free_pvalue_per_t[i];
-            message <<                "\t" << largest_cc_size_per_t[i] << "\t" << largest2_cc_size_per_t[i];
-            message <<                "\t" << graph_clustering_coefficient_per_t[i] << "\t" << random_graph_clustering_coefficient_per_t[i];
-            message << "\n";
-        }
-    }
-
-    return message.str();
+    return 0;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -528,11 +512,11 @@ std::string thresholdAll(igraph_t &G,
 
 void help(std::string prog_name){
     std::cerr <<  "\n Usage: \n";
-    std::cerr <<  "   " << prog_name     << " [-OPTIONS]... <GRAPH FILE PATH>\n";
+    std::cerr <<  "   " << prog_name     << " [-OPTIONS]... <GRAPH FILE PATH> <OUTPUT FILE PATH> \n";
     std::cerr <<  "\n Graph has to be in .ncol format. \n";
+    std::cerr <<  "   Output file is where results are send. \n";
     std::cerr <<  "\n Options: \n";
     std::cerr <<  "  -o  --out                      <filename>         path to store results\n";
-    std::cerr <<  "                                                         if not given, results are sent to stdout\n";
     std::cerr <<  "  -l  --lower                    <value>            lower bound on thresholds to test (default 0.5)\n";
     std::cerr <<  "  -u  --upper                    <value>            upper bound on thresholds to test (default 0.99)\n";
     std::cerr <<  "  -i  --increment                <value>            threshold increment (default 0.01)\n";
@@ -540,25 +524,25 @@ void help(std::string prog_name){
     std::cerr <<  "  -p  --minimumpartitionsize     <value>            minimum size of graph or subgraph after thresholding (default 10)\n";
     std::cerr <<  "  -h  --help                                        print this help and exit\n";
     std::cerr <<  "\n";
-    exit(1);
+    exit(0);
 }
 
 int arguement_parser(int argc, char **argv, 
-        // Mandatory arguement definitions
-        std::string &infile,  //input file name
+    // Mandatory arguement definitions
+    std::string &infile,  //input file name
+    std::string &outfile,
 
-        // Here flags (options without arguments) and arguments with defined type
-        double &lower,
-        double &upper,
-        double &increment,
-        int &windowsize,
-        int &minimumpartitionsize,
-        std::string &outfile
-        ){
+    // Here flags (options without arguments) and arguments with defined type
+    double &lower,
+    double &upper,
+    double &increment,
+    int &windowsize,
+    int &minimumpartitionsize
+    ){
 
     int next_option;
 
-    const char* const short_options = "hl:u:i:w:p:m:o:" ;
+    const char* const short_options = "hl:u:i:w:p:m:" ;
     const struct option long_options[] =
         {    //name,                    has_arg,    flag,        val 
             { "help",                   0,          NULL,        'h'},
@@ -567,7 +551,6 @@ int arguement_parser(int argc, char **argv,
             { "increment",              1,          NULL,        'i'}, 
             { "windowsize",             1,          NULL,        'w'},
             { "minimumpartitionsize",   1,          NULL,        'p'},
-            { "outfile",                1,          NULL,        'o'},
             { NULL, 0, NULL, 0 }
         };
  
@@ -627,11 +610,13 @@ int arguement_parser(int argc, char **argv,
         help(argv[0]);
     }
     // Iterate over rest of the arguments (i.e. in argv[optind])
-    while (optind < argc){
+    infile = argv[optind];
+    outfile = argv[optind + 1];
+    //while (optind < argc){
         // only mandatory arguement at this stage is input file name
-        infile = argv[optind];        
-        optind++;
-    }
+    //    infile = argv[optind];        
+    //    optind++;
+    //}
  
     return 0;
 }
@@ -645,30 +630,44 @@ int main(int argc, char **argv){
     // Parse arguements
     // Mandatory arguement definitions
     std::string infile;  //input file name
-   
+    std::string outfile_name;
+
     // Flags (options without arguments) and arguments with defined type
     double l=0.5;
     double u=0.99;
     double increment=0.01;
     int windowsize=5;
     int minimumpartitionsize=10;
-    std::string outfile_name;
 
-    arguement_parser(argc, argv, infile, l, u, increment, windowsize, minimumpartitionsize, outfile_name);
+    arguement_parser(argc, argv, infile, outfile_name, l, u, increment, windowsize, minimumpartitionsize);
 
-    std::cout << "\n------------------------------------------------\n";
-    std::cout << "input file: \t\t"         << infile << "\n";
-    std::cout << "lower threshold: \t"      << l << "\n";
-    std::cout << "upper threshold: \t"      << u << "\n";
-    std::cout << "threshold increment: \t"  << increment << "\n";
-    std::cout << "output file: \t\t"        << outfile_name << "\n";
-    std::cout << "------------------------------------------------\n";
+    // check arguemnts
+    if(outfile_name.empty()) {
+        std::cout << "No output specified. " << std::endl;
+        return 0;
+    }
+
+    // compare window size to minimumpartionsize
+    if(minimumpartitionsize <= windowsize){
+        std::cout << " Warning: cannot have minimumpartitionsize <= spectral_minimumpartitionsize. ";
+        std::cout << " Using windowsize = 5 and spectral_minimumpartitionsize = 10." << std::endl;
+        minimumpartitionsize = 10;
+        windowsize = 5;
+    }
 
     // check that thresholding range is good
     if(l>=u){
         std::cout << "Error in threshold limits: cannot have l >= u" << std::endl;
         return 0;
     }
+
+    std::cout << "\n------------------------------------------------\n";
+    std::cout << "input file: \t\t"         << infile << "\n";
+    std::cout << "output file: \t\t"        << outfile_name << "\n";
+    std::cout << "lower threshold: \t"      << l << "\n";
+    std::cout << "upper threshold: \t"      << u << "\n";
+    std::cout << "threshold increment: \t"  << increment << "\n";
+    std::cout << "------------------------------------------------\n";
 
     // turn on attribute handling
     // for igraph to handle edge weights
@@ -680,17 +679,16 @@ int main(int argc, char **argv){
     read_graph(infile, G, IGRAPH_ADD_WEIGHTS_YES);
     std::cout << "done." << std::endl;
 
-    std::string message;
+    int status;
+    status = thresholdAll(outfile_name,
+                 G,
+                 l=l, 
+                 u=u,
+                 increment=increment,
+                 windowsize=windowsize,
+                 minimumpartitionsize=minimumpartitionsize);
 
-    message = thresholdAll(G,
-                           l=l, 
-                           u=u,
-                           increment=increment,
-                           windowsize=windowsize,
-                           minimumpartitionsize=minimumpartitionsize);
-    output_results(outfile_name, message);
-
-    return 0;
+    return status;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
