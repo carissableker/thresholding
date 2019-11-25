@@ -148,7 +148,7 @@ int thresholdAll(std::string& outfile_name,
             }
         }
 
-
+/*
         ///////////////////////////////////////////////////////////////////////
         // Maximal Clique Number
         ///////////////////////////////////////////////////////////////////////
@@ -160,7 +160,7 @@ int thresholdAll(std::string& outfile_name,
         clique_count_per_t[i_t] = clique_count;
         igraph_clique_number(&G, &clique_number);
         clique_number_per_t[i_t] = clique_number;
-    
+*/    
         ///////////////////////////////////////////////////////////////////////
         // Density
         ///////////////////////////////////////////////////////////////////////
@@ -172,7 +172,7 @@ int thresholdAll(std::string& outfile_name,
         ///////////////////////////////////////////////////////////////////////
         // Scale free
         ///////////////////////////////////////////////////////////////////////
-
+/*
         igraph_vector_t degrees;
         igraph_vector_init(&degrees, V); // degrees will go in here. 
 
@@ -193,7 +193,7 @@ int thresholdAll(std::string& outfile_name,
         igraph_vector_t eigenvector;
         igraph_vector_init(&eigenvector, 0);
         std::vector<double> window_differences;
-
+*/
         // Get largest connected component
         igraph_t G_cc;
         igraph_integer_t cc_count;
@@ -203,7 +203,7 @@ int thresholdAll(std::string& outfile_name,
 
         largest_cc_size_per_t[i_t] = V_cc;
         largest2_cc_size_per_t[i_t] = V2_cc;
-
+/*
         int number_clusters = 1;
 
         if(V_cc >= minimumpartitionsize){
@@ -444,7 +444,7 @@ int thresholdAll(std::string& outfile_name,
 
         poi_chi_sq_pvalue_per_t[i_t] = poi_pvalue;
         goe_chi_sq_pvalue_per_t[i_t] = goe_pvalue;
-
+*/
 
         ///////////////////////////////////////////////////////////////////////
         // Percolation
@@ -457,7 +457,7 @@ int thresholdAll(std::string& outfile_name,
         ///////////////////////////////////////////////////////////////////////
         // Clustering coefficient
         ///////////////////////////////////////////////////////////////////////
-
+/*
         igraph_real_t graph_clustering_coefficient;
         igraph_transitivity_undirected(&G, &graph_clustering_coefficient, IGRAPH_TRANSITIVITY_NAN); 
   
@@ -470,7 +470,7 @@ int thresholdAll(std::string& outfile_name,
 
         graph_clustering_coefficient_per_t[i_t] = graph_clustering_coefficient;
         random_graph_clustering_coefficient_per_t[i_t] = random_graph_clustering_coefficient;
-      
+*/      
         ///////////////////////////////////////////////////////////////////////
         was_tested_per_t[i_t] = true;
 
