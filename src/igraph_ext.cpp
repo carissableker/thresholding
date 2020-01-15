@@ -1,11 +1,11 @@
-#include <igraph_ext.h> 
+#include "igraph_ext.h"
 
 ///////////////////////////////////////////////////////////////////////////////
 //     IO functions                                                          //
 ///////////////////////////////////////////////////////////////////////////////
 
 // Read in graph
-int read_graph(std::string &graph_file_path, igraph_t& G, igraph_add_weights_t is_weighted){
+int read_graph(std::string& graph_file_path, igraph_t& G, igraph_add_weights_t is_weighted){
 
     FILE *graph_file;
     graph_file = fopen(graph_file_path.c_str(), "r"); 
@@ -24,80 +24,87 @@ int read_graph(std::string &graph_file_path, igraph_t& G, igraph_add_weights_t i
     return 0;
 }
 
-
-///////////////////////////////////////////////////////////////////////////////
-//     Graph functions                                                       //
-///////////////////////////////////////////////////////////////////////////////
-
 // Threshold graph
 // by removing edges with abs weight less than "t" 
 // and subsequently vertices with no neighbours 
 int threshold_graph(double t, igraph_t &G){
+    // 1 = all edges removed
+    // 2 = some edges are removed
+    // 3 = no edges removed
 
     // identify edges to remove
-    igraph_vector_t weights;
-    igraph_vector_init(&weights, 0);
-
     igraph_vector_t edge_indices;
     igraph_vector_init(&edge_indices, 0);
 
-    // should this be inside the loop, ie per edge???
-    igraph_cattribute_EANV(&G, "weight", igraph_ess_all(IGRAPH_EDGEORDER_ID), &weights);
-
     igraph_real_t w;
-    for (long int i=0; i<igraph_ecount(&G); i++){
-        w = VECTOR(weights)[i];
-        if(w < t &&  w > -t){
+    igraph_integer_t E = igraph_ecount(&G);
+
+    for (int i=0; i<E; i++){
+        w = igraph_cattribute_EAN(&G, "weight", i);
+        if(w < t && w > -t){
             // add this edge index to list of edges to be deleted
             igraph_vector_push_back(&edge_indices, i);
         }     
     }
-    
-    // no edges to remove, don't change G
-    if(igraph_vector_size(&edge_indices) == 0){
-        return 0;
+
+    if(igraph_ecount(&G) <= igraph_vector_size(&edge_indices)){
+        // removing all edges, so could just delete all vertices
+        //igraph_delete_vertices(&G, igraph_vss_all());
+        
+        // clean up
+        igraph_vector_destroy(&edge_indices);
+        return 1;
     }
-    
-    // removing all edges, so just delete all vertices
-    else if(igraph_ecount(&G) <= igraph_vector_size(&edge_indices)){
-        igraph_delete_vertices(&G, igraph_vss_all());
-        return 0;
-    }
-    
-    // remove edges 
-    igraph_delete_edges(&G, igraph_ess_vector(&edge_indices));
+    else if(igraph_vector_size(&edge_indices) > 0){
 
-    std::cout << " Removed " << igraph_vector_size(&edge_indices) << " edges and ";
+        // remove edges 
+        igraph_delete_edges(&G, igraph_ess_vector(&edge_indices));
+        std::cout << " Removed " << igraph_vector_size(&edge_indices) << " edges and ";
 
-    igraph_vector_destroy(&weights);
-    igraph_vector_destroy(&edge_indices);
+        // clean up
+        igraph_vector_destroy(&edge_indices);
 
-    // identify and remove degree 0 vertices
-    igraph_vector_t vertex_degrees;
-    igraph_vector_init(&vertex_degrees, 0);
+        // identify and remove degree 0 vertices
+        igraph_vector_t vertex_degrees;
+        igraph_vector_init(&vertex_degrees, 0);
 
-    igraph_vector_t vertex_indices;
-    igraph_vector_init(&vertex_indices, 0);
+        igraph_vector_t vertex_indices;
+        igraph_vector_init(&vertex_indices, 0);
 
-    igraph_degree(&G, &vertex_degrees, igraph_vss_all(), IGRAPH_ALL, false);
+        igraph_degree(&G, &vertex_degrees, igraph_vss_all(), IGRAPH_ALL, false);
 
-    for(long int i=0; i<igraph_vcount(&G); i++){
-        if(VECTOR(vertex_degrees)[i] == 0){
-            igraph_vector_push_back(&vertex_indices, i);
+        for(long int i=0; i<igraph_vcount(&G); i++){
+            if(VECTOR(vertex_degrees)[i] == 0){
+                igraph_vector_push_back(&vertex_indices, i);
+            }
         }
+
+        if(igraph_vector_size(&vertex_indices) > 0){
+            // remove them
+            igraph_delete_vertices(&G, igraph_vss_vector(&vertex_indices));
+        }
+        std::cout << igraph_vector_size(&vertex_indices) << " vertices. " << std::flush;
+
+        // clean up
+        igraph_vector_destroy(&vertex_degrees);
+        igraph_vector_destroy(&vertex_indices);
+        
+
+        return 2; 
+    }
+    // last option is no edges to remove, don't change G, so do nothing
+    else if(igraph_vector_size(&edge_indices) == 0){
+        std::cout << " Removed 0 edges and 0 vertices. ";
+
+        // clean up
+        igraph_vector_destroy(&edge_indices);
+
+        return 3;
     }
 
-    if(igraph_vector_size(&vertex_indices) > 0){
-        // remove them
-        igraph_delete_vertices(&G, igraph_vss_vector(&vertex_indices));
+    else{
+        return -1;
     }
-    
-    std::cout << igraph_vector_size(&vertex_indices) << " vertices. " << std::flush;
-
-    igraph_vector_destroy(&vertex_degrees);
-    igraph_vector_destroy(&vertex_indices);
-
-    return 0;
 }
 
 // Identify largest connected component of the graph and induce
@@ -172,7 +179,9 @@ int largest_connected_component(igraph_t &G, igraph_t &G_cc, igraph_integer_t &c
 
 // Fiedler vector: eigen-vector corresponding to first non-zero eigen-value
 // Assume connected graph -> 2nd eigenvector
-int Fiedler_vector(igraph_t &G, igraph_vector_t &eigenvector, igraph_real_t &eigenvalue){
+int Fiedler_vector(igraph_t &G, 
+                   igraph_vector_t &eigenvector, 
+                   igraph_real_t &eigenvalue){
 
     //std::cout << " Attempting to get the Fiedler vector and value. " << std::flush;
     // make sure G has edges and that G is connected
@@ -201,9 +210,13 @@ int Fiedler_vector(igraph_t &G, igraph_vector_t &eigenvector, igraph_real_t &eig
     igraph_vector_init(&values, V); // first two eigenvalues will go in here. 
                                     // Size is V since https://github.com/igraph/igraph/issues/1109
     igraph_matrix_init(&vectors, V, 2); // number vertices by 2 eigenvectors
-
-    // Laplacian of G
-    igraph_laplacian(&G, &laplacian, NULL, false, NULL);
+ 
+    // Weighted Laplacian of G
+    igraph_vector_t weights;
+    igraph_vector_init(&weights, 0);
+    
+    igraph_cattribute_EANV(&G, "weight", igraph_ess_all(IGRAPH_EDGEORDER_ID), &weights);
+    igraph_laplacian(&G, &laplacian, NULL, false, &weights);
 
     // Eigen decomposition for symmetric matrices using LAPACK
     igraph_lapack_dsyevr(&laplacian, IGRAPH_LAPACK_DSYEV_SELECT, 0, 0, 0, 1, 2, 1e-8, &values, &vectors, 0); 
@@ -218,6 +231,7 @@ int Fiedler_vector(igraph_t &G, igraph_vector_t &eigenvector, igraph_real_t &eig
     // remove laplacian, vectors and values
     igraph_matrix_destroy(&laplacian);
     igraph_vector_destroy(&values);
+    //igraph_vector_destroy(&weights);
     igraph_matrix_destroy(&vectors);
 
     return 0;

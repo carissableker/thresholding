@@ -1,0 +1,3 @@
+f2c/libf2c_la-f77vers.lo: f2c/f77vers.c /usr/include/stdc-predef.h
+
+/usr/include/stdc-predef.h:

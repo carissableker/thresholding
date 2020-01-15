@@ -2,14 +2,14 @@ CC		= g++
 LIBS	= -ligraph 
 LIBDIRS	= -L/usr/local/lib -L$(PWD)/lib
 INC		= -I$(PWD)/include -I$(PWD)/include/alglib -I$(PWD)/include/igraph
-FLAGS	= -std=c++11 -g -Wl,-rpath=$(PWD)/lib,$(LIBDIRS)
+FLAGS	= -std=c++11 -g -Wl,-rpath=$(PWD)/lib
 
-TARGET	= bin/threshold
+TARGET	= $(PWD)/bin/threshold
 
-SRCDIR	= src
+SRCDIR	= $(PWD)/src
 SRCEXT	= cpp
 
-INCLUDEDIR	 = $(PWD)/include
+INCLUDEDIR	= $(PWD)/include
 LIBDIR 		= $(PWD)/lib
 BUILDDIR 	= $(PWD)/build
 EXTERNALDIR = $(PWD)/external/
@@ -21,12 +21,13 @@ OBJECTS = $(patsubst $(SRCDIR)/%,$(BUILDDIR)/%,$(SOURCES:.$(SRCEXT)=.o))
 $(info $(SOURCES))
 $(info $(OBJECTS))
 
-$(TARGET): $(OBJECTS)
-	$(CC) -o $@ $^ $(FLAGS) $(LIBS)
 
-$(BUILDDIR)/%.o: $(SRCDIR)/%.$(SRCEXT) igraph
+$(TARGET): $(OBJECTS) 
+	$(CC) -o $@ $^ $(FLAGS) $(LIBDIRS) $(LIBS) 
+
+$(BUILDDIR)/%.o: $(SRCDIR)/%.$(SRCEXT)  #igraph
 	@mkdir -p $(BUILDDIR)
-	$(CC) -c -o $@ $< $(FLAGS) $(INC) $(LIBDIRS) $(LIBS)
+	$(CC) -c -o $@ $< $(FLAGS) $(INC) $(LIBDIRS) $(LIBS) 
 
 .PHONY: igraph 
 igraph:
@@ -46,6 +47,7 @@ clean:
 
 
 # http://nuclear.mutantstargoat.com/articles/make/#building-sub-projects 
+
 # Doesn't work, see https://github.com/igraph/igraph/issues/1263#issue-523750694
 # ./configure --includedir=$(INCLUDEDIR)/igraph --libdir=$(LIBDIR) --prefix=$(BUILDDIR) 
 

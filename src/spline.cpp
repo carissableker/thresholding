@@ -1,4 +1,4 @@
-#include <spline.h> 
+#include "spline.h" 
 
 // Accurate Monotonicity Preserving Cubic Interpolation
 // In this case x, y is a cdf, and always monotone increasing

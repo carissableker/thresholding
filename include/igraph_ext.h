@@ -9,7 +9,6 @@
 #include <algorithm>  // std::nth_element, std::min_element, std::max_element
 #include <math.h>     // pow, sqrt, fabs
 #include <getopt.h>   // commandline argument parsing
-#include <stdlib.h>   // atoi, atof
 #include <sstream>    // stringstream
 #include <cmath>      // std::copysign
 
