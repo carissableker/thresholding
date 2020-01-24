@@ -8,8 +8,8 @@
 int read_graph(std::string& graph_file_path, igraph_t& G, igraph_add_weights_t is_weighted){
 
     FILE *graph_file;
-    graph_file = fopen(graph_file_path.c_str(), "r"); 
-    
+    graph_file = fopen(graph_file_path.c_str(), "r");
+
     // Test if file exists
     if (graph_file == NULL){
         std::cerr << "Error - Unable to open file: " << graph_file_path << std::endl;
@@ -20,13 +20,13 @@ int read_graph(std::string& graph_file_path, igraph_t& G, igraph_add_weights_t i
     igraph_read_graph_ncol(&G, graph_file, NULL, false, is_weighted, IGRAPH_UNDIRECTED);
 
     fclose(graph_file);
-    
+
     return 0;
 }
 
 // Threshold graph
-// by removing edges with abs weight less than "t" 
-// and subsequently vertices with no neighbours 
+// by removing edges with abs weight less than "t"
+// and subsequently vertices with no neighbours
 int threshold_graph(double t, igraph_t &G){
     // 1 = all edges removed
     // 2 = some edges are removed
@@ -44,20 +44,20 @@ int threshold_graph(double t, igraph_t &G){
         if(w < t && w > -t){
             // add this edge index to list of edges to be deleted
             igraph_vector_push_back(&edge_indices, i);
-        }     
+        }
     }
 
     if(igraph_ecount(&G) <= igraph_vector_size(&edge_indices)){
         // removing all edges, so could just delete all vertices
         //igraph_delete_vertices(&G, igraph_vss_all());
-        
+
         // clean up
         igraph_vector_destroy(&edge_indices);
         return 1;
     }
     else if(igraph_vector_size(&edge_indices) > 0){
 
-        // remove edges 
+        // remove edges
         igraph_delete_edges(&G, igraph_ess_vector(&edge_indices));
         std::cout << " Removed " << igraph_vector_size(&edge_indices) << " edges and ";
 
@@ -88,9 +88,9 @@ int threshold_graph(double t, igraph_t &G){
         // clean up
         igraph_vector_destroy(&vertex_degrees);
         igraph_vector_destroy(&vertex_indices);
-        
 
-        return 2; 
+
+        return 2;
     }
     // last option is no edges to remove, don't change G, so do nothing
     else if(igraph_vector_size(&edge_indices) == 0){
@@ -108,7 +108,7 @@ int threshold_graph(double t, igraph_t &G){
 }
 
 // Identify largest connected component of the graph and induce
-int largest_connected_component(igraph_t &G, igraph_t &G_cc, igraph_integer_t &cc_count, 
+int largest_connected_component(igraph_t &G, igraph_t &G_cc, igraph_integer_t &cc_count,
                                 igraph_integer_t &V_cc, igraph_integer_t &V2_cc){
     // See also igraph_decompose, but since we only need
     // the largest CC, there is no point inducing all CCs.
@@ -117,9 +117,9 @@ int largest_connected_component(igraph_t &G, igraph_t &G_cc, igraph_integer_t &c
     igraph_vector_init(&membership, 0);
     igraph_vector_t csize;
     igraph_vector_init(&csize, 0);
-    
+
     igraph_clusters(&G, &membership, &csize, &cc_count, IGRAPH_STRONG);
-        
+
     // iterate over csize to find largest CC
     V_cc = 0;
     int max_cc_index;
@@ -143,7 +143,7 @@ int largest_connected_component(igraph_t &G, igraph_t &G_cc, igraph_integer_t &c
     //    this_cc_size = VECTOR(csize)[i];
     //    if(this_cc_size == max_cc_size){
     //        num_max_cc++;
-    //    } 
+    //    }
     //}
 
     // get the size of the second largest CC
@@ -153,7 +153,7 @@ int largest_connected_component(igraph_t &G, igraph_t &G_cc, igraph_integer_t &c
         if( (this_cc_size > V2_cc) && (this_cc_size < V_cc) ){
             V2_cc = this_cc_size;
         }
-     }    
+    }
 
     // identified largest CC, now collect its vertices
     igraph_vector_t vertices_in_cc;
@@ -166,7 +166,7 @@ int largest_connected_component(igraph_t &G, igraph_t &G_cc, igraph_integer_t &c
             j += 1;
         }
     }
-    
+
     // induce the subgraph of the largest CC
     igraph_induced_subgraph(&G, &G_cc, igraph_vss_vector(&vertices_in_cc), IGRAPH_SUBGRAPH_AUTO);
 
@@ -179,8 +179,8 @@ int largest_connected_component(igraph_t &G, igraph_t &G_cc, igraph_integer_t &c
 
 // Fiedler vector: eigen-vector corresponding to first non-zero eigen-value
 // Assume connected graph -> 2nd eigenvector
-int Fiedler_vector(igraph_t &G, 
-                   igraph_vector_t &eigenvector, 
+int Fiedler_vector(igraph_t &G,
+                   igraph_vector_t &eigenvector,
                    igraph_real_t &eigenvalue){
 
     //std::cout << " Attempting to get the Fiedler vector and value. " << std::flush;
@@ -196,7 +196,7 @@ int Fiedler_vector(igraph_t &G,
         std::cout <<" Fielder failed: not connected " << std::endl;
         return 0;
     }
-    
+
     // dimension of laplacian = num vertices
     igraph_integer_t V = igraph_vcount(&G);
 
@@ -206,20 +206,20 @@ int Fiedler_vector(igraph_t &G,
     // init eigen values and vectors
     igraph_vector_t values;
     igraph_matrix_t vectors;
-    
-    igraph_vector_init(&values, V); // first two eigenvalues will go in here. 
+
+    igraph_vector_init(&values, V); // first two eigenvalues will go in here.
                                     // Size is V since https://github.com/igraph/igraph/issues/1109
     igraph_matrix_init(&vectors, V, 2); // number vertices by 2 eigenvectors
- 
+
     // Weighted Laplacian of G
     igraph_vector_t weights;
     igraph_vector_init(&weights, 0);
-    
+
     igraph_cattribute_EANV(&G, "weight", igraph_ess_all(IGRAPH_EDGEORDER_ID), &weights);
     igraph_laplacian(&G, &laplacian, NULL, false, &weights);
 
     // Eigen decomposition for symmetric matrices using LAPACK
-    igraph_lapack_dsyevr(&laplacian, IGRAPH_LAPACK_DSYEV_SELECT, 0, 0, 0, 1, 2, 1e-8, &values, &vectors, 0); 
+    igraph_lapack_dsyevr(&laplacian, IGRAPH_LAPACK_DSYEV_SELECT, 0, 0, 0, 1, 2, 1e-8, &values, &vectors, 0);
 
     // should be 0.0 (or there abouts)
     //std::cout << " 1st eigenvalue: " << VECTOR(values)[0] << std::flush;
@@ -240,7 +240,7 @@ int Fiedler_vector(igraph_t &G,
 // See igraph_get_adjacency for unweighted graph
 int get_weighted_adjacency(igraph_t &G, igraph_matrix_t &Adj){
     igraph_eit_t edgeit;                             // interate over edges
-    long int V = igraph_vcount(&G);               // number vertices / matrix size    
+    long int V = igraph_vcount(&G);               // number vertices / matrix size
 
     long int from, to;
     igraph_integer_t ffrom, fto;
@@ -265,8 +265,8 @@ int get_weighted_adjacency(igraph_t &G, igraph_matrix_t &Adj){
         to=fto;
         w = VECTOR(weights)[edge];
 
-        MATRIX(Adj, from, to) = w; 
-        
+        MATRIX(Adj, from, to) = w;
+
         if (from != to){
             MATRIX(Adj, to, from) = w;
         }

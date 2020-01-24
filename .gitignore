@@ -3,7 +3,10 @@ inprogress/
 test_results/
 thresholding.sublime-project
 thresholding.sublime-workspace
+.clang_complete
 
 callgrind*
 build/*.o
 lib/lib*
+
+*.txt

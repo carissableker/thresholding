@@ -1,5 +1,5 @@
 CC		= g++
-LIBS	= -ligraph 
+LIBS	= -ligraph
 LIBDIRS	= -L/usr/local/lib -L$(PWD)/lib
 INC		= -I$(PWD)/include -I$(PWD)/include/alglib -I$(PWD)/include/igraph
 FLAGS	= -std=c++11 -g -Wl,-rpath=$(PWD)/lib
@@ -22,14 +22,14 @@ $(info $(SOURCES))
 $(info $(OBJECTS))
 
 
-$(TARGET): $(OBJECTS) 
-	$(CC) -o $@ $^ $(FLAGS) $(LIBDIRS) $(LIBS) 
+$(TARGET): $(OBJECTS)
+	$(CC) -o $@ $^ $(FLAGS) $(LIBDIRS) $(LIBS)
 
 $(BUILDDIR)/%.o: $(SRCDIR)/%.$(SRCEXT)  #igraph
 	@mkdir -p $(BUILDDIR)
-	$(CC) -c -o $@ $< $(FLAGS) $(INC) $(LIBDIRS) $(LIBS) 
+	$(CC) -c -o $@ $< $(FLAGS) $(INC) $(LIBDIRS) $(LIBS)
 
-.PHONY: igraph 
+.PHONY: igraph
 igraph:
 	cd $(EXTERNALDIR) && \
 	tar zxvf $(IGRAPHDIR).tar.gz && \
@@ -37,7 +37,7 @@ igraph:
 	./configure --libdir=$(LIBDIR) --prefix=$(BUILDDIR) && \
 	$(MAKE) && \
 	$(MAKE) install #&& \
-	#cp $(BUILDDIR)/include/igraph/* $(INCLUDEDIR)/igraph/
+	cp $(BUILDDIR)/include/igraph/* $(INCLUDEDIR)/igraph/
 
 .PHONY: clean
 clean:
@@ -46,9 +46,9 @@ clean:
 	#$(MAKE) --directory=$(IGRAPHDIR) clean
 
 
-# http://nuclear.mutantstargoat.com/articles/make/#building-sub-projects 
+# http://nuclear.mutantstargoat.com/articles/make/#building-sub-projects
 
 # Doesn't work, see https://github.com/igraph/igraph/issues/1263#issue-523750694
-# ./configure --includedir=$(INCLUDEDIR)/igraph --libdir=$(LIBDIR) --prefix=$(BUILDDIR) 
+# ./configure --includedir=$(INCLUDEDIR)/igraph --libdir=$(LIBDIR) --prefix=$(BUILDDIR)
 
 

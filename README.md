@@ -1,33 +1,33 @@
 # thresholding
 
-Repository for thresholding code. 
+Repository for thresholding code.
 
 ## Installation
 
 Compiling also installs [igraph](igraph.org/c/)-0.7.1, so you will need to have
-igraph dependency (libxml2) installed beforehand (see below). 
+igraph dependency (libxml2) installed beforehand (see below).
 
     git clone git@github.com:carissableker/thresholding.git
     cd thresholding
 
-To compile: 
+To compile:
 
     make
 
-Executable will be in `bin` folder. 
+Executable will be in `bin` folder.
 
 ### Optional instructions for libxml2:
 
-If libxml2 is not already installed, the following is one way of installing it. 
-Another (preferable and easier) option is `apt-get`. 
+If libxml2 is not already installed, the following is one way of installing it.
+Another (preferable and easier) option is `apt-get`.
 
     wget ftp://xmlsoft.org/libxml2/libxml2-<version>.tar.gz
-    tar -xzvf libxml2-<version>.tar.gz 
+    tar -xzvf libxml2-<version>.tar.gz
     ./configure  --without-python --prefix=/my_optional path/
     make
     make install
 
-And if you used a prefix: 
+And if you used a prefix:
 
     echo 'export PATH="/my_optional_path/bin:$PATH"
     export LD_LIBRARY_PATH="/my_optional_path/lib:$LD_LIBRARY_PATH"
@@ -37,22 +37,30 @@ And if you used a prefix:
 ## Usage
 
     ./threshold --help
-     
-	 Usage: 
-	
-	   ./bin/threshold [-OPTIONS]... <GRAPH FILE PATH> <OUTPUT FILE PATH> 
 
-		 Graph has to be in .ncol format. 
-  		 Output file is where results are send. 
+    Usage:
+    ./bin/threshold [-OPTIONS]... <GRAPH FILE PATH> <OUTPUT FILE PATH>
 
- 		Options: 
-		  -o  --out                      <filename>         path to store results
-		  -l  --lower                    <value>            lower bound on thresholds to test (default 0.5)
-		  -u  --upper                    <value>            upper bound on thresholds to test (default 0.99)
-		  -i  --increment                <value>            threshold increment (default 0.01)
-		  -w  --windowsize               <value>            sliding window size for spectral method (default 5)
-		  -p  --minimumpartitionsize     <value>            minimum size of graph or subgraph after thresholding (default 10)
-		  -h  --help                                        print this help and exit
+    Graph has to be in .ncol format.
+    Output file path is the prefix to the results files, which will be of the form:
+        <OUTPUT FILE PATH>.pid.<method_name>.txt
+
+    Options:
+      -l  --lower                 <value>     lower bound on thresholds to test (default 0.5)
+      -u  --upper                 <value>     upper bound on thresholds to test (default 0.99)
+      -i  --increment             <value>     threshold increment (default 0.01)
+      -w  --windowsize            <value>     sliding window size for spectral method (default 5)
+      -p  --minimumpartitionsize  <value>     minimum size of graph or subgraph after thresholding (default 10)
+      -m  --methods               <value>     comma seperated list of methods (defaults to none)
+                                                  0 - all
+                                                  1 - maximal clicques
+                                                  2 - scale free
+                                                  3 - spectral methods
+                                                  4 - random matrix theory
+                                                  5 - clustering coefficient
+                                                  6 - local-global
+      -h  --help                              print this help and exit
+
 
 ## To do:
 
