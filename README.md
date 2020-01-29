@@ -5,7 +5,7 @@ a number of methods to analyse a weighted graph in order to suggest an
 optimal threshold for the graph.
 
 The components of this repository are:
- - C++ thresholding anlysis code
+ - C++ threshold anlysis code
  - script to output a histogram of the edge weights of a graph
  - Python3 Jupyter notebook to analyse the results of the thresholding analysis code
  - script to output a threshold graph
@@ -89,13 +89,13 @@ Options:
 ### 2. Analysis of results
 
 The output of graph analysis is a number of files containing statistics and
-metrics of the graph. A Python3 Jupyter notebook is supplied to be able to
-interactively analysis these files. This notebook can be found at ./
+metrics of the graph. A Python3 Jupyter notebook is supplied to
+interactively analyse these files. This notebook can be found at ./
 
 
 ### 3. Thresholding
 
-For simple thresholding, the fastest is probablyt to use the `./absolute_global_threshold` script.
+For simple thresholding, the fastest is probably to use the `./absolute_global_threshold` script.
 
 ```bash
 Usage:  absolute_global_threshold <input.ncol> <t> <output.ncol>
@@ -112,13 +112,9 @@ Alternbatively, `threshold` can also be used to threshold the graph. (See usage 
 
 * Change Chi2 test of GOE to KS test for continuous distributions
 * Add Spearman significance
-* Make loop optional
+* Make increment loop optional
 * Consider positive and negative values seperately
-* ?Support for Windows/Mac
-
-
-
-
+* Consider support for Windows/Mac
 
 
 ## Other
