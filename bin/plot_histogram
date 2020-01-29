@@ -1,0 +1,26 @@
+#!/usr/bin/env python3
+
+import sys, os
+import seaborn as sns
+import matplotlib.pyplot as plt
+import pandas as pd
+
+sns.set()
+
+hist_tsv = sys.argv[1]
+
+base_name, extension = os.path.splitext(hist_tsv)
+
+hist_svg = base_name + ".svg"
+
+hist_df = pd.read_csv(hist_tsv, sep="\t")
+bins = list(hist_df["bin_start"]) + [hist_df["bin_end"].iloc[-1]]
+weights = list(hist_df["bin_count"])
+
+with sns.plotting_context("paper"):
+    ax = sns.distplot(bins[:-1], hist_kws={"weights":weights}, bins=bins, kde=True,
+                      kde_kws={"label": "KDE"},
+                      axlabel="Weight")
+    ax.set(ylabel='Edge count')
+    plt.tight_layout()
+    plt.savefig(hist_svg)

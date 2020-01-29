@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+
+# code to threshold a ncol graph file
+# arg 1: input ncol file
+# arg 2: threshold value (will threshold as an absolute value)
+# arg 3: output ncol file
+
+set -e
+
+# test if three arguments are given
+if [[ $# -ne 3 ]]
+	then
+	    echo "Usage:  ${0##*/} <input.ncol> <t> <output.ncol>"
+		exit 1
+fi
+
+# make useful variable names
+ingraph=$1
+t=$2
+outgraph=$3
+
+# test if output file exists
+# if it does, complain and exit
+if [[ -f $outgraph ]]
+	then
+		echo "Error: $outgraph already exists. Not proceeding. "
+		exit 1
+fi
+
+# threshold iwel, leaving header in place
+newne=(`awk -v t="$t" -v outgraph="$outgraph" -F$"\t" '$3 >= t || $3 <= -t {{print $0 > outgraph}  {V[$1]++ V[$2]++} {e++}} END {print length(V), e}' $ingraph`)
+
+# output success
+echo "
+		Thresholded file at $outgraph. Threshold using t = |$t|.
+		Resultant graph has ${newne[0]} vertices and ${newne[1]} edges.
+		"
+
+

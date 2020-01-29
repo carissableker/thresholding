@@ -6,7 +6,7 @@
 
 #include <vector>     // std::vector
 #include <iostream>   // std::cout, std::cerr, std::endl
-#include <fstream>    // fopen, fclose (to read igraph)
+#include <fstream>    // fopen, fclose (to read igraph), ofstream
 #include <algorithm>  // std::nth_element, std::min_element, std::max_element
 #include <math.h>     // pow, sqrt, fabs, M_PI
 #include <getopt.h>   // commandline argument parsing
@@ -27,27 +27,59 @@
 #include "maximal_cliques.h"
 #include "clustering_coefficient.h"
 #include "local_global.h"
-
+#include "significance.h"
 
 //////////////////////////////////////////////////////////////////////////////
 //     Thresholding functions                                                 //
 ///////////////////////////////////////////////////////////////////////////////
 
-int thresholdAll(std::string& outfile_prefix,
-                 igraph_t &G,
-                 double l,
-                 double u,
-                 double increment,
-                 int windowsize,
-                 int minimumpartitionsize,
-                 int minimum_cliquesize,
-                 double min_alpha,
-                 double max_alpha,
-                 double alpha_increment,
-                 int num_samples,
-                 double significance_alpha,
-                 double power_beta,
-                 std::set<int> methods){
+int threshold(
+        std::string& outfile,
+        igraph_t &G,
+        std::string method,
+        double parameter){
+
+    ///////////////////////////////////////////////////////////////////////
+
+    igraph_integer_t E = igraph_ecount(&G); // number edges
+    igraph_integer_t V = igraph_vcount(&G); // number vertices
+
+    std::cout << "Number vertices:  " << V << "\n";
+    std::cout << "Number edges:     " << E;
+
+    if (method == "absolute"){
+        threshold_graph(parameter, G);
+    }
+    else if (method == "local-global"){
+        igraph_t new_G;
+        double mean_k;
+        local_global_pruning(G,
+                 parameter,
+                 new_G,
+                 mean_k);
+    }
+
+    write_graph(outfile, G);
+    return 0;
+}
+
+
+int thresholdAnalysis(
+        std::string& outfile_prefix,
+        igraph_t &G,
+        double l,
+        double u,
+        double increment,
+        int windowsize,
+        int minimumpartitionsize,
+        int minimum_cliquesize,
+        double min_alpha,
+        double max_alpha,
+        double alpha_increment,
+        int num_samples,
+        double significance_alpha,
+        double bonferroni_corrected,
+        std::set<int> methods){
 
     std::string outfile_name;
 
@@ -62,7 +94,7 @@ int thresholdAll(std::string& outfile_prefix,
 
     std::cout << "Number vertices:  " << V << "\n";
     std::cout << "Number edges:     " << E;
-    std::cout << "  (maximum possible number edges " << orig_max_E << ")";
+    std::cout << "  (maximum possible number edges " << int(orig_max_E) << ")";
     std::cout << std::endl;
     std::cout << "------------------------------------------------\n\n";
 
@@ -71,10 +103,9 @@ int thresholdAll(std::string& outfile_prefix,
     ///////////////////////////////////////////////////////////////////////
 
     ///////////////////////////////////////////////////////////////////////
-    // local-global (guzzi2014)
+    // local-global (guzzi2014, rank)
     if(methods.find(6)!=methods.end()){
         outfile_name = outfile_prefix + "local_global.txt";
-
         local_global_method(G,
                      min_alpha,
                      max_alpha,
@@ -85,38 +116,19 @@ int thresholdAll(std::string& outfile_prefix,
     }
 
 
-    ///////////////////////////////////////////////////////////////////////
-    // Type I error control (false positive rate)
-    // control p-value
+    ///////////////////////////////////////////////////////////////////////////
+    // Type I error (false positive rate) and
+    // Type II error (false negative rate) control
     // only for PearsonCC
     // Have to have n - number of samples (not number of variables)
     if(methods.find(7)!=methods.end()){
-        double max_pvalue;
-        bool bonferroni_corrected = true;
-        double n = num_samples*1.0;
-
-        // calculate max p-value
-        if(bonferroni_corrected){
-            max_pvalue = significance_alpha / double(E);
-        }
-        else{
-            max_pvalue = significance_alpha;
-        }
-
-        // bacwards calculate min correlation (i.e. the threshold)
-
+        outfile_name = outfile_prefix + "statistical_errors.txt";
+        control_statistical_errors(significance_alpha,
+                                  num_samples,
+                                  E,
+                                  bonferroni_corrected,
+                                  outfile_name);
     }
-    ///////////////////////////////////////////////////////////////////////
-    // Type II error control (false negative rate)
-    // power
-    if(methods.find(8)!=methods.end()){
-
-    }
-
-
-
-
-
 
     ///////////////////////////////////////////////////////////////////////
     // Thresholding loop
@@ -370,13 +382,19 @@ int arguement_parser(int argc, char **argv,
     double &increment,
     int &windowsize,
     int &minimumpartitionsize,
+    int &num_samples,
+    bool &bonferroni_corrected,
     int &minimum_cliquesize,
     std::string &methods
     ){
 
+    static const std::set<std::string> true_strings = { "True", "TRUE", "true",
+                                                        "Yes",  "YES",  "yes",
+                                                        "1" };
+
     int next_option;
 
-    const char* const short_options = "hl:u:i:w:p:c:m:" ;
+    const char* const short_options = "hl:u:i:w:p:n:b:c:m:" ;
     const struct option long_options[] =
         {    //name,                    has_arg,    flag,        val
             { "help",                   0,          NULL,        'h'},
@@ -385,6 +403,8 @@ int arguement_parser(int argc, char **argv,
             { "increment",              1,          NULL,        'i'},
             { "windowsize",             1,          NULL,        'w'},
             { "minimumpartitionsize",   1,          NULL,        'p'},
+            { "num_samples",            1,          NULL,        'n'},
+            { "bonferroni_corrected",   1,          NULL,        'b'},
             { "minimum_cliquesize",     1,          NULL,        'c'},
             { "methods",                1,          NULL,        'm'},
             { NULL, 0, NULL, 0 }
@@ -422,6 +442,16 @@ int arguement_parser(int argc, char **argv,
 
             case 'p' : // -p or --minimumpartitionsize
                 minimumpartitionsize=atoi(optarg);
+                break;
+
+            case 'n' : // -p or --minimumpartitionsize
+                num_samples=atoi(optarg);
+                break;
+
+            case 'b' : // -p or --minimumpartitionsize
+                if (true_strings.count(optarg) > 0){
+                    bonferroni_corrected=1;
+                }
                 break;
 
             case 'c' : // -p or --minimumpartitionsize
@@ -485,11 +515,12 @@ int main(int argc, char **argv){
 
     int num_samples=0;
     double significance_alpha=0.01;
-    double power_beta=0.80;
+    bool bonferroni_corrected=0;
 
     std::string str_methods="";
 
-    arguement_parser(argc, argv, infile, outfile_prefix, l, u, increment, windowsize, minimumpartitionsize, minimum_cliquesize, str_methods);
+    arguement_parser(argc, argv, infile, outfile_prefix, l, u, increment, windowsize,
+        minimumpartitionsize, num_samples, bonferroni_corrected, minimum_cliquesize, str_methods);
 
     // check arguemnts
     if(outfile_prefix.empty()) {
@@ -518,7 +549,7 @@ int main(int argc, char **argv){
         methods.insert({0});
     }
     else if (str_methods == "0" ){
-        methods.insert({1, 2, 3, 4, 5, 6});
+        methods.insert({1, 2, 3, 4, 5, 6, 7});
     }
     else{
         std::istringstream str_methods_stream(str_methods);
@@ -555,21 +586,21 @@ int main(int argc, char **argv){
     std::cout << "done." << std::endl;
 
     int status;
-    status = thresholdAll(outfile_prefix,
-                          G,
-                          l,
-                          u,
-                          increment,
-                          windowsize,
-                          minimumpartitionsize,
-                          minimum_cliquesize,
-                          min_alpha,
-                          max_alpha,
-                          alpha_increment,
-                          num_samples,
-                          significance_alpha,
-                          power_beta,
-                          methods);
+    status = thresholdAnalysis(outfile_prefix,
+                               G,
+                               l,
+                               u,
+                               increment,
+                               windowsize,
+                               minimumpartitionsize,
+                               minimum_cliquesize,
+                               min_alpha,
+                               max_alpha,
+                               alpha_increment,
+                               num_samples,
+                               significance_alpha,
+                               bonferroni_corrected,
+                               methods);
     return status;
 }
 

@@ -1,10 +1,10 @@
-#include <math_ext.h> 
+#include <math_ext.h>
 
 ///////////////////////////////////////////////////////////////////////////////
 //     Math/Stat functions                                                   //
 ///////////////////////////////////////////////////////////////////////////////
 
-// Returns the vector of differences between first and 
+// Returns the vector of differences between first and
 // last elements of the windows of size n in x
 // from igraph_vector_t to  std::vector
 int rolling_difference_igraph(igraph_vector_t &x, std::vector<double> &out, int n){
@@ -23,7 +23,7 @@ int rolling_difference_igraph(igraph_vector_t &x, std::vector<double> &out, int 
 }
 
 
-// Returns the vector of differences between first and 
+// Returns the vector of differences between first and
 // last elements of the windows of size n in x
 // from std::vector to  std::vector
 // Nope nope nope TODO
@@ -45,7 +45,7 @@ int rolling_difference(std::vector<double> &x, std::vector<double> &out, int n){
 
 // Median of a vector
 double median(std::vector<double> v){
-    
+
     int size = v.size();
     if(size == 0){
         return NAN;
@@ -64,7 +64,7 @@ double median(std::vector<double> v){
             o1 = v[size/2];
             o0 = *std::max_element(v.begin(), v.begin() + size/2 -1);
             return (o0 + o1)/2;
-        } 
+        }
         else{
             // odd length, middle number
             std::nth_element(v.begin(), v.begin() + (size-1)/2, v.end());
@@ -100,7 +100,7 @@ double stddev(std::vector<double> v, double dof){
 // get the exponent to pow value to make a double an int
 // Stephen Grady
 int get_precision(double k){
-    
+
     int exponent=0;
     bool doneWith0=false;
 
@@ -137,7 +137,7 @@ std::vector<double> range(double l, double u, double increment){
     for(int int_t=int_l; int_t<=int_u; int_t+=int_increment){
         out.push_back(int_t/precision);
     }
-    
+
     return out;
 }
 
@@ -163,9 +163,9 @@ std::vector<double> ecdf(std::vector<double> x, std::vector<double> t){
     // j = current index in x
     // i = current index in t
     // k = placeholder index of x
-    
-    int k=0, j=0, i = 0; 
-    
+
+    int k=0, j=0, i = 0;
+
     for(i=0; i<N; i++){
 
         if(j<n){
@@ -206,4 +206,8 @@ double poisson(double x1, double x2){
 double goe(double x1, double x2){
     // p(s) d(s) = 0.5 * M_PI * x * exp( -1.0 * M_PI * pow(x, 2.0) / 4.0) ds
     return exp( -1.0 * M_PI * pow(x1, 2.0) / 4.0) - exp( -1.0 * M_PI * pow(x2, 2.0) / 4.0);
+}
+
+double fisher_transform(double r, int n){
+    return atanh(r) + r / (2.0 * (double(n) - 1.0));
 }

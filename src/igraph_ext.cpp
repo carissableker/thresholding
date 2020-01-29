@@ -5,7 +5,9 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 // Read in graph
-int read_graph(std::string& graph_file_path, igraph_t& G, igraph_add_weights_t is_weighted){
+int read_graph(std::string& graph_file_path,
+               igraph_t& G,
+               igraph_add_weights_t is_weighted){
 
     FILE *graph_file;
     graph_file = fopen(graph_file_path.c_str(), "r");
@@ -23,6 +25,24 @@ int read_graph(std::string& graph_file_path, igraph_t& G, igraph_add_weights_t i
 
     return 0;
 }
+
+
+// Write graph
+int write_graph(std::string& graph_file_path,
+                igraph_t& G){
+
+    FILE *graph_file;
+    graph_file = fopen(graph_file_path.c_str(), "w");
+
+    // write in file as weghted edge list
+    igraph_write_graph_ncol(&G, graph_file, "name", "weight");
+
+    fclose(graph_file);
+
+    return 0;
+}
+
+
 
 // Threshold graph
 // by removing edges with abs weight less than "t"
@@ -108,11 +128,12 @@ int threshold_graph(double t, igraph_t &G){
 }
 
 // Identify largest connected component of the graph and induce
-int largest_connected_component(igraph_t &G, igraph_t &G_cc, igraph_integer_t &cc_count,
-                                igraph_integer_t &V_cc, igraph_integer_t &V2_cc){
+int largest_connected_component(igraph_t &G, igraph_t &G_cc,
+                                igraph_integer_t &cc_count,
+                                igraph_integer_t &V_cc,
+                                igraph_integer_t &V2_cc){
     // See also igraph_decompose, but since we only need
     // the largest CC, there is no point inducing all CCs.
-
     igraph_vector_t membership;
     igraph_vector_init(&membership, 0);
     igraph_vector_t csize;

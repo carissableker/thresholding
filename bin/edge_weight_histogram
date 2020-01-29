@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+
+# code to threshold a ncol graph file
+# arg 1: input ncol file
+# arg 2: threshold value (will threshold as an absolute value)
+# arg 3: output ncol file
+
+set -e
+
+# test if three arguments are given
+if [[ $# -ne 3 ]]
+	then
+	    echo "Usage:  ${0##*/} <input.ncol> <output_prefix> <bin_width>"
+		exit 1
+fi
+
+# make useful variable names
+ingraph=$1
+width=$2
+outtsv="$3.tsv"
+outsvg="$3.svg"
+
+# test if output files exists
+# if it does, complain and exit
+if [[ -f $outtsv  ]]
+	then
+		echo "Error: $outtsv already exists. Not proceeding. "
+		exit 1
+fi
+
+# degree distribution
+echo -e "bin_start\tbin_end\tbin_count" > $outtsv
+awk -v width=$width '{ bin=int(($3+1)/width); \
+                       if(bin in hist){hist[bin]+=1}else{hist[bin]=1}; \
+                     }END{for (b in hist) printf "%2.5f\t%2.5f\t%i\n", b*width-1, b*width-1+width, hist[b]}' "$ingraph" | sort -k1 -g >> $outtsv
+
+# plot using python
+python `dirname $0`/plot_histogram $outtsv
+
+
+# output success
+echo "Edge distribution at $outtsv and $outsvg"
