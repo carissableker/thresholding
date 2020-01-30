@@ -2,13 +2,13 @@
 #define MATH_EXT_H
 
 #include <vector>     // std::vector
-#include <algorithm>  // std::nth_element, std::min_element, std::max_element
+#include <algorithm>  // std::nth_element, std::min/amx_element, size_t,  partial sort
 #include <math.h>     // pow, sqrt, fabs
 #include <cmath>      // std::copysign
 #include <stdexcept>  // std::invalid_argument
 #include <fstream>    // ofstream
 #include <sstream>    // ostringstream
-
+#include <numeric>    // iota
 
 #include <igraph/igraph.h>
 
@@ -57,5 +57,8 @@ double goe(double, double);
 
 
 double fisher_transform(double, int);
+
+
+std::vector<size_t> argsort(std::vector<double>, int);
 
 #endif

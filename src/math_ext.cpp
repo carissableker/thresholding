@@ -205,9 +205,27 @@ double poisson(double x1, double x2){
 
 double goe(double x1, double x2){
     // p(s) d(s) = 0.5 * M_PI * x * exp( -1.0 * M_PI * pow(x, 2.0) / 4.0) ds
-    return exp( -1.0 * M_PI * pow(x1, 2.0) / 4.0) - exp( -1.0 * M_PI * pow(x2, 2.0) / 4.0);
+    return exp( -1.0 * M_PI * pow(x1, 2.0) / 4.0)
+         - exp( -1.0 * M_PI * pow(x2, 2.0) / 4.0);
 }
 
 double fisher_transform(double r, int n){
     return atanh(r) + r / (2.0 * (double(n) - 1.0));
+}
+
+// return indices of k-largest (absolute) in vector
+// https://stackoverflow.com/a/12399290/4996681
+// https://stackoverflow.com/a/12476317/4996681
+std::vector<size_t> argsort(std::vector<double> v, int k){
+    // initialize original index locations
+    std::vector<size_t> v_idx(v.size());
+    std::iota(v_idx.begin(), v_idx.end(), 0);
+
+    // sort first k largest values using lambda for custom comp
+    std::partial_sort(v_idx.begin(), v_idx.begin()+k, v_idx.end(),
+        [&v](size_t i1, size_t i2){
+            return std::fabs(v[i1]) > std::fabs(v[i2]);} );
+
+    std::vector<size_t>result(v_idx.begin(), v_idx.begin()+k);
+    return result;
 }

@@ -28,19 +28,16 @@
 #include "clustering_coefficient.h"
 #include "local_global.h"
 #include "significance.h"
+#include "local_rank.h"
 
-//////////////////////////////////////////////////////////////////////////////
-//     Thresholding functions                                                 //
+///////////////////////////////////////////////////////////////////////////////
+//     Thresholding functions                                                //
 ///////////////////////////////////////////////////////////////////////////////
 
-int threshold(
-        std::string& outfile,
-        igraph_t &G,
-        std::string method,
-        double parameter){
-
-    ///////////////////////////////////////////////////////////////////////
-
+int threshold(std::string& outfile,
+              igraph_t &G,
+              std::string method,
+              double parameter){
     igraph_integer_t E = igraph_ecount(&G); // number edges
     igraph_integer_t V = igraph_vcount(&G); // number vertices
 
@@ -64,28 +61,23 @@ int threshold(
 }
 
 
-int thresholdAnalysis(
-        std::string& outfile_prefix,
-        igraph_t &G,
-        double l,
-        double u,
-        double increment,
-        int windowsize,
-        int minimumpartitionsize,
-        int minimum_cliquesize,
-        double min_alpha,
-        double max_alpha,
-        double alpha_increment,
-        int num_samples,
-        double significance_alpha,
-        double bonferroni_corrected,
-        std::set<int> methods){
+int thresholdAnalysis(std::string& outfile_prefix,
+                      igraph_t &G,
+                      double l,
+                      double u,
+                      double increment,
+                      int windowsize,
+                      int minimumpartitionsize,
+                      int minimum_cliquesize,
+                      double min_alpha,
+                      double max_alpha,
+                      double alpha_increment,
+                      int num_samples,
+                      double significance_alpha,
+                      double bonferroni_corrected,
+                      std::set<int> methods){
 
     std::string outfile_name;
-
-
-    ///////////////////////////////////////////////////////////////////////
-
     igraph_integer_t E = igraph_ecount(&G); // number edges
     igraph_integer_t V = igraph_vcount(&G); // number vertices
 
@@ -115,7 +107,6 @@ int thresholdAnalysis(
                      outfile_name);
     }
 
-
     ///////////////////////////////////////////////////////////////////////////
     // Type I error (false positive rate) and
     // Type II error (false negative rate) control
@@ -131,7 +122,7 @@ int thresholdAnalysis(
     }
 
     ///////////////////////////////////////////////////////////////////////
-    // Thresholding loop
+    // Threshold loop
     // loop destroys the graph
     ///////////////////////////////////////////////////////////////////////
 
@@ -208,7 +199,8 @@ int thresholdAnalysis(
                 continue;
             }
             else{
-                std::cout << "\t\tVertices: " << V << "\tEdges: " << E << std::flush;
+                std::cout << "\t\tVertices: " << V << "\tEdges: " << E;
+                std::cout << std::flush;
             }
         }
         else if(threshold_status == 2){
@@ -223,7 +215,8 @@ int thresholdAnalysis(
                 break;
             }
             else{
-                std::cout << "\t\tVertices: " << V << "\tEdges: " << E << std::flush;
+                std::cout << "\t\tVertices: " << V << "\tEdges: " << E;
+                std::cout << std::flush;
             }
         }
         else{
@@ -243,7 +236,8 @@ int thresholdAnalysis(
         ///////////////////////////////////////////////////////////////////////
         // Largest connected component sizes (basically percolation)
         igraph_t G_cc;
-        largest_connected_component(G, G_cc, cc_count, largest_cc_size, largest2_cc_size);
+        largest_connected_component(G, G_cc, cc_count,
+                                    largest_cc_size, largest2_cc_size);
 
         ///////////////////////////////////////////////////////////////////////
         // Metrics to only do if requested
@@ -251,19 +245,20 @@ int thresholdAnalysis(
 
         for (auto& m : methods) {
 
-                ///////////////////////////////////////////////////////////////////////
+                ///////////////////////////////////////////////////////////////
                 // None
                 if(m==0){
                     break;
                 }
 
-                ///////////////////////////////////////////////////////////////////////
+                ///////////////////////////////////////////////////////////////
                 // Maximal Clique Number
                 if(m==1){
-                    maximal_cliques(G, minimum_cliquesize, clique_count, clique_number);
+                    maximal_cliques(G, minimum_cliquesize,
+                                    clique_count, clique_number);
                 }
 
-                ///////////////////////////////////////////////////////////////////////
+                ///////////////////////////////////////////////////////////////
                 // Scale free
                 else if(m==2){
                     igraph_plfit_result_t scale_free_result;
@@ -272,7 +267,7 @@ int thresholdAnalysis(
                     scale_free_KS = scale_free_result.D;
                 }
 
-                ///////////////////////////////////////////////////////////////////////
+                ///////////////////////////////////////////////////////////////
                 // Spectral Methods
                 else if(m == 3){
                     if(largest_cc_size >= minimumpartitionsize){
@@ -284,7 +279,7 @@ int thresholdAnalysis(
                     }
                 }
 
-                ///////////////////////////////////////////////////////////////////////
+                ///////////////////////////////////////////////////////////////
                 // Random Matrix Theory
                 else if(m==4){
                     random_matrix_theory(G,
@@ -295,7 +290,7 @@ int thresholdAnalysis(
                                          goe_chi_sq_pvalue);
                 }
 
-                ///////////////////////////////////////////////////////////////////////
+                ///////////////////////////////////////////////////////////////
                 // Clustering coefficient
                 else if(m==5){
                     graph_clustering_coefficient(G,
@@ -304,7 +299,7 @@ int thresholdAnalysis(
                                                  clustering_coefficient_r);
                 }
 
-                ///////////////////////////////////////////////////////////////////////
+                ///////////////////////////////////////////////////////////////
                 else{
                     continue;
                 }
@@ -314,17 +309,16 @@ int thresholdAnalysis(
 
         ///////////////////////////////////////////////////////////////////////
         // Make results into a string
-        ///////////////////////////////////////////////////////////////////////
-
-        // message
         std::stringstream message;
         message << t;
         message << "\t" << V                 << "\t" << E;
         message << "\t" << cc_count;
         message << "\t" << density          << "\t" << density_orig_V;
         message << "\t" << largest_cc_size   << "\t" << largest2_cc_size;
-        message << "\t" << clustering_coefficient << "\t" << clustering_coefficient_r;
-        message << "\t" << second_eigenvalue << "\t" << nearly_disconnected_components;
+        message << "\t" << clustering_coefficient;
+        message << "\t" << clustering_coefficient_r;
+        message << "\t" << second_eigenvalue;
+        message << "\t" << nearly_disconnected_components;
         message << "\t" << clique_count      << "\t" << clique_number;
         message << "\t" << poi_chi_sq_stat   << "\t" << poi_chi_sq_pvalue;
         message << "\t" << goe_chi_sq_stat   << "\t" << goe_chi_sq_pvalue;
@@ -334,16 +328,13 @@ int thresholdAnalysis(
     }
 
     igraph_destroy(&G);
-
     out.close();
-
     std::cout << "\nDone. \n" << std::endl;
-
     return 0;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-//     Commandline arguments                                                 //
+//     Command-line arguments                                                //
 ///////////////////////////////////////////////////////////////////////////////
 
 void help(std::string prog_name){
@@ -358,10 +349,10 @@ void help(std::string prog_name){
     std::cerr <<  "      -u  --upper                 <value>     upper bound on thresholds to test (default 0.99)\n";
     std::cerr <<  "      -i  --increment             <value>     threshold increment (default 0.01)\n";
     std::cerr <<  "      -w  --windowsize            <value>     sliding window size for spectral method (default 5)\n";
-    std::cerr <<  "      -p  --minimumpartitionsize  <value>     minimum size of graph or subgraph after thresholding (default 10)\n";
-    std::cerr <<  "      -m  --methods               <value>     comma seperated list of methods (defaults to none)\n";
+    std::cerr <<  "      -p  --minimumpartitionsize  <value>     minimum size of graph or subgraph after threshold (default 10)\n";
+    std::cerr <<  "      -m  --methods               <value>     comma separated list of methods (defaults to none)\n";
     std::cerr <<  "                                                  0 - all\n";
-    std::cerr <<  "                                                  1 - maximal clicques\n";
+    std::cerr <<  "                                                  1 - maximal cliques\n";
     std::cerr <<  "                                                  2 - scale free\n";
     std::cerr <<  "                                                  3 - spectral methods\n";
     std::cerr <<  "                                                  4 - random matrix theory\n";
@@ -372,8 +363,8 @@ void help(std::string prog_name){
     exit(0);
 }
 
-int arguement_parser(int argc, char **argv,
-    // Mandatory arguement definitions
+int argument_parser(int argc, char **argv,
+    // Mandatory argument definitions
     std::string &infile,
     std::string &outfile,
     // Here flags (options without arguments) and arguments with defined type
@@ -413,7 +404,8 @@ int arguement_parser(int argc, char **argv,
     // Parse options
     while (1) {
         // Obtain an option
-        next_option = getopt_long(argc, argv, short_options, long_options, NULL);
+        next_option = getopt_long(argc, argv,
+                                  short_options, long_options, NULL);
 
         if (next_option == -1)
             break; // No more options. Break loop.
@@ -473,20 +465,16 @@ int arguement_parser(int argc, char **argv,
         }
     }
 
-    // Mandatory arguements
-    // Current index (optind) must be smaller than the total number of arguments
+    // Mandatory arguments
+    // Current index (optind) < than the total number of arguments
     if(optind == argc){
         std::cerr << "\n Mandatory argument(s) missing\n";
         help(argv[0]);
     }
     // Iterate over rest of the arguments (i.e. in argv[optind])
     infile = argv[optind];
-    outfile = argv[optind + 1];
-    //while (optind < argc){
-        // only mandatory arguement at this stage is input file name
-    //    infile = argv[optind];
-    //    optind++;
-    //}
+    optind++;
+    outfile = argv[optind ];
 
     return 0;
 }
@@ -497,8 +485,12 @@ int arguement_parser(int argc, char **argv,
 
 int main(int argc, char **argv){
 
-    // Parse arguements
-    // Mandatory arguement definitions
+    // firstly, check if we are analysis or threshold
+
+
+
+    // Parse arguments
+    // Mandatory argument definitions
     std::string infile;  //input file name
     std::string outfile_prefix;
 
@@ -519,27 +511,40 @@ int main(int argc, char **argv){
 
     std::string str_methods="";
 
-    arguement_parser(argc, argv, infile, outfile_prefix, l, u, increment, windowsize,
-        minimumpartitionsize, num_samples, bonferroni_corrected, minimum_cliquesize, str_methods);
+    argument_parser(argc, argv, infile, outfile_prefix,
+                    l, u, increment, windowsize,
+                    minimumpartitionsize, num_samples,
+                    bonferroni_corrected, minimum_cliquesize, str_methods);
 
-    // check arguemnts
+
+    // if argument threshold is given,
+    // then we are going to threshold the graph according to the
+    // argument method and parameter
+
+
+
+    // check arguments
     if(outfile_prefix.empty()) {
-        std::cout << "No output prefix specified. " << std::endl;
+        std::cerr << "No output prefix specified. " << std::endl;
         return 0;
     }
 
-    // compare window size to minimumpartionsize
+    // compare window size to minimumpartitionsize
     if(minimumpartitionsize <= windowsize){
-        std::cerr << " Warning: cannot have minimumpartitionsize <= windowsize. ";
-        std::cerr << " Using windowsize = 5 and minimumpartitionsize = 10." << std::endl;
+        std::cerr << "Warning: cannot have ";
+        std::cerr << "minimumpartitionsize <= windowsize. \n";
+        std::cerr << "Using windowsize = 5 and minimumpartitionsize = 10.";
+        std::cerr << std::endl;
         minimumpartitionsize = 10;
         windowsize = 5;
     }
 
-    // check that thresholding range is good
+    // check that threshold range is good
     if(l>=u){
-        std::cout << "Error in threshold limits: cannot have l >= u. " << std::endl;
-        std::cout << "Please restart with corrected lower and upper bounds. " << std::endl;
+        std::cerr << "Error in threshold limits: ";
+        std::cerr << "cannot have l >= u.\n ";
+        std::cerr << "Please restart with corrected lower and upper bounds. ";
+        std::cerr << std::endl;
         return 0;
     }
 

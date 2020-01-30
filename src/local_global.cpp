@@ -86,7 +86,6 @@ int local_global_pruning(igraph_t& G,
   		e_id = IGRAPH_EIT_GET(all_e_iterator);
   		w = VECTOR(edge_weights)[e_id];
   		if (w > 0){
-  			// add 0.5 to new weights
 			igraph_vector_push_back(&edge_indices, e_id);
 		}
   		IGRAPH_EIT_NEXT(all_e_iterator);

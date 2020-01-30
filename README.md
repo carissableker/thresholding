@@ -51,11 +51,11 @@ It is recommended to first view a histogram of the edge weights:
 ```bash
 $ ./bin/edge_weight_histogram <GRAPH FILE PATH> <OUTPUT FILE PATH> <BIN WIDTH> <OUTPUT FILE PATH>
 ```
-This will create a tab seperated file with bin counts in `<OUTPUT FILE PATH>.tsv.`
+This will create a tab separated file with bin counts in `<OUTPUT FILE PATH>.tsv.`
 and a SVG figure of the histogram at `<OUTPUT FILE PATH>.svg`.
 The histogram can be used to decide on lower and upper bounds on the thresholds.
 
-For analysis of the graph in terms of thresholding options, run the `threshold` program.
+For analysis of the graph in terms of threshold options, run the `threshold` program.
 
 ```bash
 $ ./bin/threshold --help
@@ -93,7 +93,7 @@ metrics of the graph. A Python3 Jupyter notebook is supplied to
 interactively analyse these files. This notebook can be found at ./
 
 
-### 3. Thresholding
+### 3. Threshold
 
 For simple thresholding, the fastest is probably to use the `./absolute_global_threshold` script.
 
@@ -104,7 +104,7 @@ Usage:  absolute_global_threshold <input.ncol> <t> <output.ncol>
 This thresholds the graph at |t|, i.e. removes all edges with absolute value smaller or equal to t.
 
 
-Alternbatively, `threshold` can also be used to threshold the graph. (See usage above).
+Alternatively, `threshold` can also be used to threshold the graph. (See usage above).
 
 
 ## To do:
@@ -113,7 +113,7 @@ Alternbatively, `threshold` can also be used to threshold the graph. (See usage 
 * Change Chi2 test of GOE to KS test for continuous distributions
 * Add Spearman significance
 * Make increment loop optional
-* Consider positive and negative values seperately
+* Consider positive and negative values separately
 * Consider support for Windows/Mac
 
 
