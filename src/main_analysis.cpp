@@ -1,4 +1,3 @@
-// made on dev
 // Carissa BLeker
 // cbleker@vols.utk.edu
 
@@ -29,37 +28,6 @@
 #include "local_global.h"
 #include "significance.h"
 #include "local_rank.h"
-
-///////////////////////////////////////////////////////////////////////////////
-//     Thresholding functions                                                //
-///////////////////////////////////////////////////////////////////////////////
-
-int threshold(std::string& outfile,
-              igraph_t &G,
-              std::string method,
-              double parameter){
-    igraph_integer_t E = igraph_ecount(&G); // number edges
-    igraph_integer_t V = igraph_vcount(&G); // number vertices
-
-    std::cout << "Number vertices:  " << V << "\n";
-    std::cout << "Number edges:     " << E;
-
-    if (method == "absolute"){
-        threshold_graph(parameter, G);
-    }
-    else if (method == "local-global"){
-        igraph_t new_G;
-        double mean_k;
-        local_global_pruning(G,
-                 parameter,
-                 new_G,
-                 mean_k);
-    }
-
-    write_graph(outfile, G);
-    return 0;
-}
-
 
 int thresholdAnalysis(std::string& outfile_prefix,
                       igraph_t &G,

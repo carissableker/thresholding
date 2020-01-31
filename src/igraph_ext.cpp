@@ -7,7 +7,8 @@
 // Read in graph
 int read_graph(std::string& graph_file_path,
                igraph_t& G,
-               igraph_add_weights_t is_weighted){
+               igraph_add_weights_t is_weighted,
+               igraph_bool_t names /*default false*/){
 
     FILE *graph_file;
     graph_file = fopen(graph_file_path.c_str(), "r");
@@ -19,7 +20,12 @@ int read_graph(std::string& graph_file_path,
     }
 
     // Read in file as graph
-    igraph_read_graph_ncol(&G, graph_file, NULL, false, is_weighted, IGRAPH_UNDIRECTED);
+    igraph_read_graph_ncol(&G,
+                           graph_file,
+                           NULL,
+                           names,
+                           is_weighted,
+                           IGRAPH_UNDIRECTED);
 
     fclose(graph_file);
 
@@ -34,7 +40,7 @@ int write_graph(std::string& graph_file_path,
     FILE *graph_file;
     graph_file = fopen(graph_file_path.c_str(), "w");
 
-    // write in file as weghted edge list
+    // write in file as weighted edge list
     igraph_write_graph_ncol(&G, graph_file, "name", "weight");
 
     fclose(graph_file);

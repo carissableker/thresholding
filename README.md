@@ -5,11 +5,12 @@ a number of methods to analyse a weighted graph in order to suggest an
 optimal threshold for the graph.
 
 The components of this repository are:
- - C++ threshold anlysis code
+ - C++ threshold analysis code
+ - C++ threshold code
+ - Bash script to output a threshold graph
  - script to output a histogram of the edge weights of a graph
  - Python3 Jupyter notebook to analyse the results of the thresholding analysis code
- - script to output a threshold graph
-
+ -
 
 ## Installation
 ---
@@ -34,7 +35,7 @@ Executable will be in `bin` folder.
 The bash script `absolute_global_threshold` uses awk, and should be executable.
 
 The bash script `edge_weight_histogram` also uses awk to calculate the bin counts,
-and uses Python3 to produce the vizualization.
+and uses Python3 to produce the visualization.
 
 ### Jupter notebook
 
@@ -75,7 +76,7 @@ Options:
   -p  --minimumpartitionsize  <value>     minimum size of graph or subgraph after thresholding (default 10)
   -m  --methods               <value>     comma seperated list of methods (defaults to none)
                                               0 - do all methods
-                                              1 - maximal clicques
+                                              1 - maximal cliques
                                               2 - scale free
                                               3 - spectral methods
                                               4 - random matrix theory

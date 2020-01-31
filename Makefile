@@ -4,7 +4,11 @@ LIBDIRS	= -L/usr/local/lib -L$(PWD)/lib
 INC		= -I$(PWD)/include -I$(PWD)/include/alglib -I$(PWD)/include/igraph
 FLAGS	= -std=c++11 -g -Wl,-rpath=$(PWD)/lib
 
-TARGET	= $(PWD)/bin/threshold
+PROG1   = $(PWD)/src/main_analysis.cpp
+TARGET1 = $(PWD)/bin/analysis
+
+PROG2   = $(PWD)/src/main_threshold.cpp
+TARGET2	= $(PWD)/bin/threshold
 
 SRCDIR	= $(PWD)/src
 SRCEXT	= cpp
@@ -15,15 +19,20 @@ BUILDDIR 	= $(PWD)/build
 EXTERNALDIR = $(PWD)/external/
 IGRAPHDIR   = igraph-0.7.1
 
-SOURCES  =  $(shell find $(SRCDIR) -xtype f -name "*".$(SRCEXT))
-OBJECTS = $(patsubst $(SRCDIR)/%,$(BUILDDIR)/%,$(SOURCES:.$(SRCEXT)=.o))
+SOURCES  =  $(shell find $(SRCDIR) -xtype f -name "*".$(SRCEXT) ! -name main* )
+OBJECTS  = $(patsubst $(SRCDIR)/%,$(BUILDDIR)/%,$(SOURCES:.$(SRCEXT)=.o))
 
-$(info $(SOURCES))
-$(info $(OBJECTS))
+#$(info $(SOURCES))
+#$(info $(OBJECTS))
+
+all: $(TARGET1) $(TARGET2)
 
 
-$(TARGET): $(OBJECTS)
-	$(CC) -o $@ $^ $(FLAGS) $(LIBDIRS) $(LIBS)
+$(TARGET1): $(OBJECTS) $(PROG1)
+	$(CC) -o $@ $^  $(FLAGS) $(INC) $(LIBDIRS) $(LIBS)
+
+$(TARGET2): $(OBJECTS) $(PROG2)
+	$(CC) -o $@ $^  $(FLAGS) $(INC) $(LIBDIRS) $(LIBS)
 
 $(BUILDDIR)/%.o: $(SRCDIR)/%.$(SRCEXT)  #igraph
 	@mkdir -p $(BUILDDIR)

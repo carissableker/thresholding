@@ -17,7 +17,10 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 // Read in graph
-int read_graph(std::string &, igraph_t&, igraph_add_weights_t);
+int read_graph(std::string&,
+			   igraph_t&,
+			   igraph_add_weights_t,
+			   igraph_bool_t=false);
 
 // Write graph
 int write_graph(std::string&,
@@ -37,11 +40,11 @@ int threshold_graph(double, igraph_t &);
 int largest_connected_component(igraph_t &, igraph_t &, igraph_integer_t &,
 	igraph_integer_t &, igraph_integer_t &);
 
-// Fiedler vector: eigen-vector corresponding to first non-zero eigen-value
+// Fiedler vector: eigenvector corresponding to first non-zero eigenvalue
 // Assume connected graph -> 2nd eigenvector
 int Fiedler_vector(igraph_t &, igraph_vector_t &, igraph_real_t &);
 
-// See igraph_get_adjacency for unweighted graph
+// See igraph_get_adjacency for unweighed graph
 int get_weighted_adjacency(igraph_t &, igraph_matrix_t &);
 
 
