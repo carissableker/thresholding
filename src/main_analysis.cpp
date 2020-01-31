@@ -15,6 +15,8 @@
 #include <math.h>     // isnormal
 #include <set>        // sets
 #include <string>     // getline
+#include <csignal>    // signal
+
 
 #include "utils.h"
 #include "math_ext.h"
@@ -453,9 +455,8 @@ int argument_parser(int argc, char **argv,
 
 int main(int argc, char **argv){
 
-    // firstly, check if we are analysis or threshold
-
-
+    // register signal SIGABRT and signal handler
+    std::signal(SIGABRT, signal_handler);
 
     // Parse arguments
     // Mandatory argument definitions

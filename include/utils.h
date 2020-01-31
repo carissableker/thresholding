@@ -6,7 +6,7 @@
 #include <fstream>    // fopen, fclose (to read igraph)
 #include <stdlib.h>   // atoi, atof
 #include <sstream>    // stringstream
-#include <unistd.h>    // getpid()
+#include <unistd.h>   // getpid()
 
 // Results IO
 int output_results(std::string&, std::string&);
@@ -14,5 +14,7 @@ int output_results(std::string&, std::string&);
 // get pid and return as a string
 std::string get_str_pid();
 
+// signal interrupt
+void signal_handler( int );
 
 #endif

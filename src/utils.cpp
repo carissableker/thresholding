@@ -13,3 +13,10 @@ std::string get_str_pid(){
     sprintf(str_pid, "%d", pid);
     return str_pid;
 }
+
+void signal_handler( int signal_num ) {
+	std::cout << "The interrupt signal is (" << signal_num << "). \n";
+	// terminate program
+	exit(signal_num);
+}
+
