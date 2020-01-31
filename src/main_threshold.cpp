@@ -72,8 +72,8 @@ void help(std::string prog_name){
     std::cerr <<  "    Usage: \n";
     std::cerr <<  "    " << prog_name     << " [-OPTIONS]... <GRAPH FILE PATH> <OUTPUT FILE PATH> \n\n";
     std::cerr <<  "    Graph has to be in .ncol format. \n";
-    std::cerr <<  "    One of the following options have to be given. ";
-    std::cerr <<  "   \n";
+    std::cerr <<  "    One of the following options have to be given: ";
+    std::cerr <<  "   \n\n";
     std::cerr <<  "    Options: \n";
     std::cerr <<  "      -a  --absolute              <value>     Threshold graph at absolute of <value>\n";
     std::cerr <<  "      -l  --local-global          <value>     Use local-global method to threshold with alpha = <value>\n";

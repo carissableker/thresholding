@@ -217,7 +217,7 @@ int thresholdAnalysis(std::string& outfile_prefix,
 
                 ///////////////////////////////////////////////////////////////
                 // None
-                if(m==0){
+                if(m==-1){
                     break;
                 }
 
@@ -315,20 +315,24 @@ void help(std::string prog_name){
     std::cerr <<  "    Output file path is the prefix to the results files, which will be of the form: \n";
     std::cerr <<  "        <OUTPUT FILE PATH>.pid.<method_name>.txt\n\n";
     std::cerr <<  "    Options: \n";
-    std::cerr <<  "      -l  --lower                 <value>     lower bound on thresholds to test (default 0.5)\n";
-    std::cerr <<  "      -u  --upper                 <value>     upper bound on thresholds to test (default 0.99)\n";
-    std::cerr <<  "      -i  --increment             <value>     threshold increment (default 0.01)\n";
-    std::cerr <<  "      -w  --windowsize            <value>     sliding window size for spectral method (default 5)\n";
-    std::cerr <<  "      -p  --minimumpartitionsize  <value>     minimum size of graph or subgraph after threshold (default 10)\n";
-    std::cerr <<  "      -m  --methods               <value>     comma separated list of methods (defaults to none)\n";
-    std::cerr <<  "                                                  0 - all\n";
-    std::cerr <<  "                                                  1 - maximal cliques\n";
-    std::cerr <<  "                                                  2 - scale free\n";
-    std::cerr <<  "                                                  3 - spectral methods\n";
-    std::cerr <<  "                                                  4 - random matrix theory\n";
-    std::cerr <<  "                                                  5 - clustering coefficient\n";
-    std::cerr <<  "                                                  6 - local-global\n";
-    std::cerr <<  "      -h  --help                              print this help and exit\n";
+    std::cerr <<  "      -l  --lower                  <value>     lower bound on thresholds to test (default 0.5)\n";
+    std::cerr <<  "      -u  --upper                  <value>     upper bound on thresholds to test (default 0.99)\n";
+    std::cerr <<  "      -i  --increment              <value>     threshold increment (default 0.01)\n";
+    std::cerr <<  "      -w  --windowsize             <value>     sliding window size for spectral method (default 5)\n";
+    std::cerr <<  "      -p  --minimumpartitionsize   <value>     minimum size of graph or subgraph after threshold (default 10)\n";
+    std::cerr <<  "      -n  --num_samples            <value>     number of samples for significance and power calculations (default NULL)\n";
+    std::cerr <<  "      -b  --bonferroni_correction              switch to perform bonferroni corrections in significance and power calculations (default FALSE)\n";
+    std::cerr <<  "      -c  --minimum_cliquesize     <value>     minimum size of maximal cliques in maximal clique count (default 5)\n";
+    std::cerr <<  "      -m  --methods                <value>     comma separated list of methods (defaults to none)\n";
+    std::cerr <<  "                                                   0 - all\n";
+    std::cerr <<  "                                                   1 - maximal cliques\n";
+    std::cerr <<  "                                                   2 - scale free\n";
+    std::cerr <<  "                                                   3 - spectral methods\n";
+    std::cerr <<  "                                                   4 - random matrix theory\n";
+    std::cerr <<  "                                                   5 - clustering coefficient\n";
+    std::cerr <<  "                                                   6 - local-global\n";
+    std::cerr <<  "                                                   7 - significance and power calculations (only valid for Pearson CC)\n";
+    std::cerr <<  "      -h  --help                               print this help and exit\n";
     std::cerr <<  "\n";
     exit(0);
 }
@@ -349,13 +353,9 @@ int argument_parser(int argc, char **argv,
     std::string &methods
     ){
 
-    static const std::set<std::string> true_strings = { "True", "TRUE", "true",
-                                                        "Yes",  "YES",  "yes",
-                                                        "1" };
-
     int next_option;
 
-    const char* const short_options = "hl:u:i:w:p:n:b:c:m:" ;
+    const char* const short_options = "hl:u:i:w:p:n:bc:m:" ;
     const struct option long_options[] =
         {    //name,                    has_arg,    flag,        val
             { "help",                   0,          NULL,        'h'},
@@ -365,7 +365,7 @@ int argument_parser(int argc, char **argv,
             { "windowsize",             1,          NULL,        'w'},
             { "minimumpartitionsize",   1,          NULL,        'p'},
             { "num_samples",            1,          NULL,        'n'},
-            { "bonferroni_corrected",   1,          NULL,        'b'},
+            { "bonferroni_correction",  0,          NULL,        'b'},
             { "minimum_cliquesize",     1,          NULL,        'c'},
             { "methods",                1,          NULL,        'm'},
             { NULL, 0, NULL, 0 }
@@ -411,9 +411,7 @@ int argument_parser(int argc, char **argv,
                 break;
 
             case 'b' : // -p or --minimumpartitionsize
-                if (true_strings.count(optarg) > 0){
-                    bonferroni_corrected=1;
-                }
+                bonferroni_corrected=1;
                 break;
 
             case 'c' : // -p or --minimumpartitionsize
@@ -520,7 +518,7 @@ int main(int argc, char **argv){
     // decode str_methods
     std::set<int> methods = {};
     if(str_methods == "" ){
-        methods.insert({0});
+        methods.insert({-1});
     }
     else if (str_methods == "0" ){
         methods.insert({1, 2, 3, 4, 5, 6, 7});
