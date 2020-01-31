@@ -1,6 +1,0 @@
-../optional/glpk/libglpk_la-glpnet01.lo: ../optional/glpk/glpnet01.c \
- /usr/include/stdc-predef.h ../optional/glpk/glpnet.h
-
-/usr/include/stdc-predef.h:
-
-../optional/glpk/glpnet.h:
