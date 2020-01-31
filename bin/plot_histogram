@@ -21,8 +21,9 @@ bins = list(hist_df["bin_start"]) + [hist_df["bin_end"].iloc[-1]]
 weights = list(hist_df["bin_count"])
 
 with sns.plotting_context("paper"):
-    ax = sns.distplot(bins[:-1], hist_kws={"weights":weights}, bins=bins, kde=True,
-                      kde_kws={"label": "KDE"},
+    ax = sns.distplot(bins[:-1], hist_kws={"weights":weights},
+    				  bins=bins, kde=False,
+                      #kde_kws={"label": "KDE"},
                       axlabel="Weight")
     ax.set(ylabel='Edge count')
     plt.tight_layout()
