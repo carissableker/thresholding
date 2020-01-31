@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
 
+import matplotlib
+matplotlib.use('agg')
+import matplotlib.pyplot as plt
+
 import sys, os
 import seaborn as sns
-import matplotlib.pyplot as plt
 import pandas as pd
 
 sns.set()
