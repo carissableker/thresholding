@@ -20,7 +20,6 @@ int local_rank(igraph_t& G,
 
 	while (!IGRAPH_VIT_END(v_iterator)) {
 		v_id = IGRAPH_VIT_GET(v_iterator);
-		int edge_count = 0;
 
 		igraph_es_t incident_edges; //selector
 	  	igraph_es_incident(&incident_edges, v_id, IGRAPH_ALL);
@@ -37,8 +36,6 @@ int local_rank(igraph_t& G,
 	  			e_id = IGRAPH_EIT_GET(e_iterator);
 		  		VECTOR(bool_keep_edges)[e_id] = 1;
 		  		IGRAPH_EIT_NEXT(e_iterator);
-
-		  		edge_count++;
 		  	}
   		}
   		else{
@@ -68,11 +65,8 @@ int local_rank(igraph_t& G,
   			for (i=0; i<d_indices.size(); i++){
   				e_id = VECTOR(incident_eids)[d_indices[i]];
   				VECTOR(bool_keep_edges)[e_id] = 1;
-		  		edge_count++;
   			}
   		}
-
-  		std::cout << v_id << " " << edge_count << std::endl;
 
 		IGRAPH_VIT_NEXT(v_iterator);
 	}
