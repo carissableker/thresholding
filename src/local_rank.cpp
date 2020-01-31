@@ -16,10 +16,11 @@ int local_rank(igraph_t& G,
     igraph_vector_t bool_keep_edges;
     igraph_vector_init(&bool_keep_edges, E);
 
+	igraph_integer_t e_id;
+
 	while (!IGRAPH_VIT_END(v_iterator)) {
 		v_id = IGRAPH_VIT_GET(v_iterator);
 		int edge_count = 0;
-
 
 		igraph_es_t incident_edges; //selector
 	  	igraph_es_incident(&incident_edges, v_id, IGRAPH_ALL);
@@ -29,8 +30,6 @@ int local_rank(igraph_t& G,
 
 		igraph_eit_t e_iterator;
 	  	igraph_eit_create(&G, incident_edges, &e_iterator);
-
-		igraph_integer_t e_id;
 
 	  	if (num_neighbours <= d){
 	  		//we're going to add all of these edges anyway
@@ -82,13 +81,22 @@ int local_rank(igraph_t& G,
 
 	// collect e_ids
 	// TODO use igraph_vector_view??
+	// select edges that passed the local threshold
+	// iterate over all edges
+	igraph_eit_t all_e_iterator;
+  	igraph_eit_create(&G, igraph_ess_all(IGRAPH_EDGEORDER_ID), &all_e_iterator);
+
     igraph_vector_t edge_indices;
     igraph_vector_init(&edge_indices, 0);
-    for (int i; i<E; i++){
-    	if (VECTOR(bool_keep_edges)[i] ==1){
-			igraph_vector_push_back(&edge_indices, i);
-    	}
-    }
+
+  	while (!IGRAPH_EIT_END(all_e_iterator)){
+  		e_id = IGRAPH_EIT_GET(all_e_iterator);
+ 		if (VECTOR(bool_keep_edges)[e_id] ==1){
+			igraph_vector_push_back(&edge_indices, e_id);
+		}
+  		IGRAPH_EIT_NEXT(all_e_iterator);
+  	}
+  	igraph_eit_destroy(&all_e_iterator);
 
   	// induce graph with these edges, delete non-adjacent vertices=True
   	igraph_subgraph_edges(&G, &new_G, igraph_ess_vector(&edge_indices), 1);
