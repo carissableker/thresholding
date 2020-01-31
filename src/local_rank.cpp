@@ -1,4 +1,5 @@
 #include "local_rank.h"
+#include <iostream>   // std::cout, std::cerr, std::endl
 
 int local_rank(igraph_t& G,
 			   int d, // select d-largest ranking vertices
@@ -14,7 +15,6 @@ int local_rank(igraph_t& G,
     // place true in vector to choose edges to keep
     igraph_vector_t bool_keep_edges;
     igraph_vector_init(&bool_keep_edges, E);
-
 
 	while (!IGRAPH_VIT_END(v_iterator)) {
 		v_id = IGRAPH_VIT_GET(v_iterator);
@@ -60,8 +60,11 @@ int local_rank(igraph_t& G,
 
 	  		// get <d> largest edge weights (absolute-value)
   			std::vector<size_t> d_indices = argsort(incident_weights, d);
+
+  			// convert to e_ids and save to bool_keep_edges
   			for (i=0; i<d_indices.size(); i++){
-  				VECTOR(bool_keep_edges)[d_indices[i]] = 1;
+  				e_id = VECTOR(incident_eids)[d_indices[i]];
+  				VECTOR(bool_keep_edges)[e_id] = 1;
   			}
   		}
 	  IGRAPH_VIT_NEXT(v_iterator);

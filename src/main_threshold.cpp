@@ -28,32 +28,37 @@ int threshold(std::string& outfile,
               double local_global_alpha,
               int rank){
 
-    igraph_integer_t E = igraph_ecount(&G); // number edges
-    igraph_integer_t V = igraph_vcount(&G); // number vertices
+    std::cout << "Original number vertices: " << igraph_vcount(&G) << "\n";
+    std::cout << "Original number edges:    " << igraph_ecount(&G) << std::endl;
+    std::cout << "------------------------------------------------\n";
 
-    std::cout << "Number vertices:  " << V << "\n";
-    std::cout << "Number edges:     " << E << std::endl;
 
     if (method == "absolute"){
         threshold_graph(absolute, G);
         write_graph(outfile, G);
+        std::cout << "Resulting number vertices: " << igraph_vcount(&G) << "\n";
+        std::cout << "Resulting number edges:    " << igraph_ecount(&G) << std::endl;
     }
     else if (method == "local-global"){
         igraph_t new_G;
         double mean_k;
         local_global_pruning(G, local_global_alpha, new_G, mean_k);
         write_graph(outfile, new_G);
+        std::cout << "Resulting number vertices: " << igraph_vcount(&new_G) << "\n";
+        std::cout << "Resulting number edges:    " << igraph_ecount(&new_G) << std::endl;
     }
     else if (method=="rank"){
         igraph_t new_G;
-        double mean_k;
-        local_global_pruning(G, local_global_alpha, new_G, mean_k);
+        local_rank(G, rank, new_G);
         write_graph(outfile, new_G);
+        std::cout << "Resulting number vertices: " << igraph_vcount(&new_G) << "\n";
+        std::cout << "Resulting number edges:    " << igraph_ecount(&new_G) << std::endl;
    }
     else {
         std::cerr << "something went wrong...";
     }
 
+    std::cout << "------------------------------------------------\n";
     return 0;
 }
 
@@ -67,26 +72,17 @@ void help(std::string prog_name){
     std::cerr <<  "    Usage: \n";
     std::cerr <<  "    " << prog_name     << " [-OPTIONS]... <GRAPH FILE PATH> <OUTPUT FILE PATH> \n\n";
     std::cerr <<  "    Graph has to be in .ncol format. \n";
-    std::cerr <<  "    Output file path is the prefix to the results files, which will be of the form: \n";
-    std::cerr <<  "        <OUTPUT FILE PATH>.pid.<method_name>.txt\n\n";
+    std::cerr <<  "    One of the following options have to be given. ";
+    std::cerr <<  "   \n";
     std::cerr <<  "    Options: \n";
-    std::cerr <<  "      -l  --lower                 <value>     lower bound on thresholds to test (default 0.5)\n";
-    std::cerr <<  "      -u  --upper                 <value>     upper bound on thresholds to test (default 0.99)\n";
-    std::cerr <<  "      -i  --increment             <value>     threshold increment (default 0.01)\n";
-    std::cerr <<  "      -w  --windowsize            <value>     sliding window size for spectral method (default 5)\n";
-    std::cerr <<  "      -p  --minimumpartitionsize  <value>     minimum size of graph or subgraph after threshold (default 10)\n";
-    std::cerr <<  "      -m  --methods               <value>     comma separated list of methods (defaults to none)\n";
-    std::cerr <<  "                                                  0 - all\n";
-    std::cerr <<  "                                                  1 - maximal cliques\n";
-    std::cerr <<  "                                                  2 - scale free\n";
-    std::cerr <<  "                                                  3 - spectral methods\n";
-    std::cerr <<  "                                                  4 - random matrix theory\n";
-    std::cerr <<  "                                                  5 - clustering coefficient\n";
-    std::cerr <<  "                                                  6 - local-global\n";
+    std::cerr <<  "      -a  --absolute              <value>     Threshold graph at absolute of <value>\n";
+    std::cerr <<  "      -l  --local-global          <value>     Use local-global method to threshold with alpha = <value>\n";
+    std::cerr <<  "      -r  --rank                  <value>     Use top <value> ranked edges per vertex to threshold graph\n";
     std::cerr <<  "      -h  --help                              print this help and exit\n";
     std::cerr <<  "\n";
     exit(0);
 }
+
 
 int argument_parser(int argc, char **argv,
     // Mandatory argument definitions
