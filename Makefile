@@ -40,6 +40,7 @@ $(BUILDDIR)/%.o: $(SRCDIR)/%.$(SRCEXT)  igraph
 
 .PHONY: igraph
 igraph:
+	@mkdir -p $(BUILDDIR)
 	cd $(EXTERNALDIR) && \
 	tar zxvf $(IGRAPHDIR).tar.gz && \
 	cd $(IGRAPHDIR) && \
