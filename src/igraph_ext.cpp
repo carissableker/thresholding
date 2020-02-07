@@ -235,21 +235,25 @@ int Fiedler_vector(igraph_t &G,
     igraph_matrix_t vectors;
 
     igraph_vector_init(&values, V); // first two eigenvalues will go in here.
-                                    // Size is V since https://github.com/igraph/igraph/issues/1109
     igraph_matrix_init(&vectors, V, 2); // number vertices by 2 eigenvectors
 
     // Weighted Laplacian of G
-    igraph_vector_t weights;
-    igraph_vector_init(&weights, 0);
+    //igraph_vector_t weights;
+    //igraph_vector_init(&weights, 0);
+    //
+    //igraph_cattribute_EANV(&G, "weight", igraph_ess_all(IGRAPH_EDGEORDER_ID), &weights);
+    //igraph_laplacian(&G, &laplacian, NULL, false, &weights);
 
-    igraph_cattribute_EANV(&G, "weight", igraph_ess_all(IGRAPH_EDGEORDER_ID), &weights);
-    igraph_laplacian(&G, &laplacian, NULL, false, &weights);
+    // Unweighted Laplacian of G
+    igraph_laplacian(&G, &laplacian, NULL, false, NULL);
+
 
     // Eigen decomposition for symmetric matrices using LAPACK
     igraph_lapack_dsyevr(&laplacian, IGRAPH_LAPACK_DSYEV_SELECT, 0, 0, 0, 1, 2, 1e-8, &values, &vectors, 0);
 
     // should be 0.0 (or there abouts)
-    //std::cout << " 1st eigenvalue: " << VECTOR(values)[0] << std::flush;
+    //std::cout << " 1st eigenvalue: " << VECTOR(values)[0] << std::endl;
+    //std::cout << " 2nd eigenvalue: " << VECTOR(values)[1] << std::endl;
 
     // set eigenvalue and eigenvector of interest
     eigenvalue = VECTOR(values)[1];

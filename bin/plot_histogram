@@ -7,25 +7,37 @@ import matplotlib.pyplot as plt
 import sys, os
 import seaborn as sns
 import pandas as pd
+import numpy as np
 
 sns.set()
 
 hist_tsv = sys.argv[1]
-
 base_name, extension = os.path.splitext(hist_tsv)
-
 hist_svg = base_name + ".svg"
 
 hist_df = pd.read_csv(hist_tsv, sep="\t")
+hist_df = round(hist_df, 5)
+
+width = round(hist_df["bin_end"][0] - hist_df["bin_start"][0], 5)
+
+new_bins = pd.DataFrame(np.arange(hist_df["bin_start"].iloc[0], hist_df["bin_start"].iloc[-1], width), columns=["bin_start"])
+new_bins["bin_end"] = new_bins["bin_start"] + width
+
+new_bins = round(new_bins, 5)
+
+hist_df = new_bins.merge(hist_df, on=["bin_start", "bin_end"], how="outer")
+hist_df.fillna(0, inplace=True)
+
 bins = list(hist_df["bin_start"]) + [hist_df["bin_end"].iloc[-1]]
 weights = list(hist_df["bin_count"])
 
 with sns.plotting_context("paper"):
     ax = sns.distplot(bins[:-1],
-    				  hist_kws={"weights":weights},
-    				  bins=bins,
-    				  kde=False, #kde_kws={"label": "KDE"},
-                      axlabel="Weight")
+        hist_kws={"weights":weights},
+        bins=bins,
+        #hist=False,
+        kde=False, #kde_kws={"label": "KDE"},
+        axlabel="Weight")
     ax.set(ylabel='Edge count')
     plt.tight_layout()
     plt.savefig(hist_svg)

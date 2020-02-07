@@ -29,9 +29,9 @@ double control_statistical_errors(double significance_alpha,
     if(bonferroni_corrected){
         max_pvalue = significance_alpha / double(E);
     }
-    std::cout << k << "\t" << 1-max_pvalue/2;
+    //std::cout << k << "\t" << 1-max_pvalue/2;
 
-    // bacwards calculate t-stastic using inverse student's T CDF
+    // backwards calculate t-statistic using inverse student's T CDF
     double t_crit = alglib::invstudenttdistribution(k, 1-max_pvalue/2);
 
     // calculate correlation  value (i.e. the threshold based on alpha)
@@ -63,7 +63,7 @@ double control_statistical_errors(double significance_alpha,
 	// Range from l to u, incrementing by increment
 	std::vector<double> r_range = range(0.01, 0.99, 0.01);
 
-    for(int i; i<r_range.size(); i++){
+    for(int i=0; i<r_range.size(); i++){
     	double r_alternative=r_range[i];
     	double z_r = fisher_transform(r_alternative, num_samples);
 
@@ -77,5 +77,6 @@ double control_statistical_errors(double significance_alpha,
         out << std::endl;
     }
 
+    out.close();
     return 0;
 }

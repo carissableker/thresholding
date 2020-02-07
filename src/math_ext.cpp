@@ -90,7 +90,7 @@ double stddev(std::vector<double> v, double dof){
     double var = 0;
 
     for(int i=0; i<n; i++){
-        var = var + pow( (v[i] - v_bar), 2.0);
+        var += pow( (v[i] - v_bar), 2.0);
     }
 
     var = var / (n-dof);

@@ -7,7 +7,7 @@ optimal threshold for the graph.
 The components of this repository are:
  - C++ threshold analysis code
  - C++ threshold code
- - Bash script to output a threshold graph
+ - Bash threshold script
  - script to output a histogram of the edge weights of a graph
  - Python3 Jupyter notebook to analyse the results of the thresholding analysis code
 
@@ -15,8 +15,9 @@ The components of this repository are:
 ## Installation
 ### C++ program
 
-Compiling also installs [igraph](igraph.org/c/)-0.7.1, so you will need to have
-igraph dependency (libxml2) installed beforehand (see [below](#optionalinstructionsforlibxml2)).
+Compiling also installs [igraph](igraph.org/c/)-0.8.0, so you will need to have
+igraph dependency (libxml2) installed beforehand
+(see [below](#optionalinstructionsforlibxml2)).
 
     git clone git@github.com:carissableker/thresholding.git
     cd thresholding
@@ -45,10 +46,10 @@ Graphs need to be in `.ncol` format to be read correctly
 [igraph_read_graph_ncol](https://igraph.org/c/doc/igraph-Foreign.html#igraph_read_graph_ncol).
 The format is defined by
 [Large Graph Layout](http://lgl.sourceforge.net/#FileFormat).
-In this application, it is a simple weighted, whitespace separated edge list:
+In this application, it is a simple weighted, whitespace separated edge list. Vertex names cannot contain whitespace.
 
-  node<sub>1</sub>⇥node<sub>2</sub>⇥weight<sub>1,2</sub> <br>
-  node<sub>1</sub>⇥node<sub>3</sub>⇥weight<sub>1,3</sub> <br>
+  vertex<sub>1</sub>⇥vertex<sub>2</sub>⇥weight<sub>1,2</sub> <br>
+  vertex<sub>1</sub>⇥vertex<sub>3</sub>⇥weight<sub>1,3</sub> <br>
   &middot; <br>
   &middot; <br>
   &middot; <br>
@@ -58,7 +59,7 @@ In this application, it is a simple weighted, whitespace separated edge list:
 It is recommended to first view a histogram of the edge weights:
 
 ```bash
-$ ./bin/edge_weight_histogram <GRAPH FILE PATH> <BIN WIDTH> <OUTPUT FILE PATH>
+$ ./bin/edge_weight_histogram <GRAPH FILE PATH> <OUTPUT FILE PATH> <BIN WIDTH>
 ```
 This will create a tab separated file with bin counts in
 `<OUTPUT FILE PATH>.tsv.`
@@ -135,7 +136,44 @@ $ ./bin/threshold  --help
 ```
 
 ---
-## To do:
+## Example:
+
+```bash
+$ cd example
+$ ls
+ecoliGraph.ncol
+```
+
+
+
+
+```bash
+$ ../bin/edge_weight_histogram ecoliGraph.ncol ecoliGraph-edge-hist 0.01
+Edge distribution at ecoliGraph-edge-hist.tsv and ecoliGraph-edge-hist.svg
+$ head ecoliGraph-edge-hist.tsv
+bin_start bin_end bin_count
+-1.00000  -0.99000  974
+-0.99000  -0.98000  2718
+-0.98000  -0.97000  4375
+-0.97000  -0.96000  5813
+```
+
+![example-histogram](./doc/figures/ecoliGraph-edge-hist.svg?raw=true "Example histogram")
+
+
+This graph has already been thresholded at 0.5 for speed and file size.
+
+
+```bash
+
+```
+```bash
+
+```
+
+
+---
+## TODOs:
 
 ### Algorithmic
 * Change Chi2 test of GOE to KS test for continuous distributions

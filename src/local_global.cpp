@@ -20,7 +20,7 @@ int local_global_pruning(igraph_t& G,
 	igraph_integer_t e_id;
   	igraph_real_t w;
 
-  	mean_k = 0;
+  	mean_k = 0.0;
 
 	while (!IGRAPH_VIT_END(v_iterator)) {
 
@@ -37,41 +37,53 @@ int local_global_pruning(igraph_t& G,
 	  	igraph_es_size(&G, &incident_edges, &num_neighbours);
 	  	igraph_eit_create(&G, incident_edges, &e_iterator);
 
-	  	std::vector<double> incident_weights(num_neighbours);
+	  	if (num_neighbours >1){
+		  	std::vector<double> incident_weights(num_neighbours);
 
+		  	// get all weights of incident edges (absolute value, TODO - hmmm)
+		  	int i=0; // neighbour index for incident_weights
+		  	while (!IGRAPH_EIT_END(e_iterator)){
+		  		e_id = IGRAPH_EIT_GET(e_iterator);
+		  		w = igraph_cattribute_EAN(&G, "weight", e_id);
+		  		incident_weights[i] = fabs(w);
+		  		IGRAPH_EIT_NEXT(e_iterator);
+		  		i++;
+		  	}
 
-	  	// get all weights of incident edges
-	  	int i=0; // neighbour index for incident_weights
-	  	while (!IGRAPH_EIT_END(e_iterator)){
-	  		e_id = IGRAPH_EIT_GET(e_iterator);
-	  		w = igraph_cattribute_EAN(&G, "weight", e_id);
-	  		incident_weights[i] = w;
-	  		IGRAPH_EIT_NEXT(e_iterator);
-	  		i++;
-	  	}
+		  	// local threshold for v_id
+		  	k = mean(incident_weights) + alpha * stddev(incident_weights);
+		  	double ave = mean(incident_weights);
+		  	double sd = stddev(incident_weights);
 
-	  	// local threshold for v_id
-	  	k = mean(incident_weights) + alpha * stddev(incident_weights);
-	  	mean_k += k;
-
-	  	// test each incident edge against local threshold
-	  	// add it to the global vector of all edge weights
-	  	IGRAPH_EIT_RESET(e_iterator);
-	  	while (!IGRAPH_EIT_END(e_iterator)){
-	  		e_id = IGRAPH_EIT_GET(e_iterator);
-	  		w = igraph_cattribute_EAN(&G, "weight", e_id);
-	  		if (w > k){
-	  			// add 0.5 to new weights
+		  	mean_k += k;
+		  	// test each incident edge against local threshold
+		  	// add it to the global vector of all edge weights
+		  	IGRAPH_EIT_RESET(e_iterator);
+		  	while (!IGRAPH_EIT_END(e_iterator)){
+		  		e_id = IGRAPH_EIT_GET(e_iterator);
+		  		w = igraph_cattribute_EAN(&G, "weight", e_id);
+		  		if (fabs(w) > k){
+		  			// add 0.5 to new weights
+		  			VECTOR(edge_weights)[e_id] += 0.5;
+		  		}
+		  		IGRAPH_EIT_NEXT(e_iterator);
+		  	}
+		}
+		else{
+			while (!IGRAPH_EIT_END(e_iterator)){
+		  		e_id = IGRAPH_EIT_GET(e_iterator);
 	  			VECTOR(edge_weights)[e_id] += 0.5;
-	  		}
-	  		IGRAPH_EIT_NEXT(e_iterator);
-	  	}
+		  		IGRAPH_EIT_NEXT(e_iterator);
+		  	}
+		}
 
-	  IGRAPH_VIT_NEXT(v_iterator);
+
+		IGRAPH_VIT_NEXT(v_iterator);
 	}
+
 	igraph_vit_destroy(&v_iterator);
 
-	mean_k /= V;
+	mean_k /= double(V);
 
 
 	// select edges that passed the local threshold
@@ -94,7 +106,6 @@ int local_global_pruning(igraph_t& G,
 
   	// induce graph with these edges, delete non-adjacent vertices=True
   	igraph_subgraph_edges(&G, &new_G, igraph_ess_vector(&edge_indices), 1);
-
 
 	igraph_vector_destroy(&edge_weights);
 	igraph_vector_destroy(&edge_indices);

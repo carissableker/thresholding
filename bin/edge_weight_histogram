@@ -16,9 +16,9 @@ fi
 
 # make useful variable names
 ingraph=$1
-width=$2
-outtsv="$3.tsv"
-outsvg="$3.svg"
+width=$3
+outtsv="$2.tsv"
+outsvg="$2.svg"
 
 # test if output files exists
 # if it does, complain and exit

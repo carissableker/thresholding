@@ -17,9 +17,9 @@ INCLUDEDIR	= $(PWD)/include
 LIBDIR 		= $(PWD)/lib
 BUILDDIR 	= $(PWD)/build
 EXTERNALDIR = $(PWD)/external/
-IGRAPHDIR   = igraph-0.7.1
+IGRAPHDIR   = igraph-0.8.0
 
-SOURCES  =  $(shell find $(SRCDIR) -xtype f -name "*".$(SRCEXT) ! -name main* )
+SOURCES  = $(shell find $(SRCDIR) -xtype f -name "*".$(SRCEXT) ! -name main* )
 OBJECTS  = $(patsubst $(SRCDIR)/%,$(BUILDDIR)/%,$(SOURCES:.$(SRCEXT)=.o))
 
 #$(info $(SOURCES))
@@ -34,7 +34,7 @@ $(TARGET1): $(OBJECTS) $(PROG1)
 $(TARGET2): $(OBJECTS) $(PROG2)
 	$(CC) -o $@ $^  $(FLAGS) $(INC) $(LIBDIRS) $(LIBS)
 
-$(BUILDDIR)/%.o: $(SRCDIR)/%.$(SRCEXT)  #igraph
+$(BUILDDIR)/%.o: $(SRCDIR)/%.$(SRCEXT)  igraph
 	@mkdir -p $(BUILDDIR)
 	$(CC) -c -o $@ $< $(FLAGS) $(INC) $(LIBDIRS) $(LIBS)
 
@@ -56,8 +56,7 @@ clean:
 
 
 # http://nuclear.mutantstargoat.com/articles/make/#building-sub-projects
-
-# Doesn't work, see https://github.com/igraph/igraph/issues/1263#issue-523750694
+# https://github.com/igraph/igraph/issues/1263#issue-523750694
 # ./configure --includedir=$(INCLUDEDIR)/igraph --libdir=$(LIBDIR) --prefix=$(BUILDDIR)
 
 

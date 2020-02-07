@@ -1,6 +1,8 @@
 example_graphs/
 inprogress/
 test_results/
+external/igraph-0.8.0/
+
 thresholding.sublime-project
 thresholding.sublime-workspace
 .clang_complete

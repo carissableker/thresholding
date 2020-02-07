@@ -180,7 +180,8 @@ int thresholdAnalysis(std::string& outfile_prefix,
             E = igraph_ecount(&G);
 
             //std::cout << " " << V << " " << E;
-            if(V < minimumpartitionsize){ //not large enough
+            if ( (V < minimumpartitionsize) || (E < minimumpartitionsize) ){
+                //not large enough
                 std::cout <<" Graph too small, finished. " << std::flush;
                 break;
             }
@@ -440,9 +441,13 @@ int argument_parser(int argc, char **argv,
         help(argv[0]);
     }
     // Iterate over rest of the arguments (i.e. in argv[optind])
+    if (argc - optind != 2){
+         std::cerr << "\n Mandatory argument(s) missing\n";
+        help(argv[0]);
+    }
     infile = argv[optind];
     optind++;
-    outfile = argv[optind ];
+    outfile = argv[optind];
 
     return 0;
 }
@@ -469,7 +474,7 @@ int main(int argc, char **argv){
     int minimumpartitionsize=10;
     int minimum_cliquesize=5;
     double min_alpha=0;
-    double max_alpha=1;
+    double max_alpha=2;
     double alpha_increment=0.1;
 
     int num_samples=0;
