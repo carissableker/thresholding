@@ -2,8 +2,8 @@
 
 int spectral_methods(igraph_t& G_cc,
                      int windowsize,
-                     int minimumpartitionsize, 
-					 igraph_real_t& second_eigenvalue, 
+                     int minimumpartitionsize,
+					 igraph_real_t& second_eigenvalue,
 					 int& number_clusters){
 
 	number_clusters = 1; // first
@@ -14,16 +14,8 @@ int spectral_methods(igraph_t& G_cc,
 
     Fiedler_vector(G_cc, eigenvector, second_eigenvalue);
 
-    // keep eigenvalue of interest
-
     // do the sort and step thing with the eigenvector
     igraph_vector_sort(&eigenvector);
-
-    // std::cout << std::endl;
-    // for(int vi=0; vi<V_cc; vi++){
-    //     std::cout << "eigenv\t" << vi <<"\t"<< VECTOR(eigenvector)[vi] << "\n";
-    // }
-    // std::cout << std::endl;
 
 	rolling_difference_igraph(eigenvector, window_differences, windowsize);
 
@@ -42,10 +34,10 @@ int spectral_methods(igraph_t& G_cc,
                 // enter step and end a cluster
                 in_step = true;
                 cluster_end = i;
-                // end the last cluster, add it to the number of clusters if it is large enough
+                // end the last cluster,
+                // add it to the number of clusters if it is large enough
                 if(cluster_end - cluster_begin >= minimumpartitionsize){
                     number_clusters = number_clusters+1;
-                    //std::cout << "cluster\t" << cluster_begin << "\t" << cluster_end << "\n";
                 }
             }
             // else we're already in the step, so do nothing
@@ -59,7 +51,7 @@ int spectral_methods(igraph_t& G_cc,
             }
             //  else already in a cluster so else nothing
         }
-    
+
     }
 
     return 0;

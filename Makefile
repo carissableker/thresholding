@@ -1,4 +1,4 @@
-CC		= g++
+CC = g++
 LIBS	= -ligraph
 LIBDIRS	= -L/usr/local/lib -L$(PWD)/lib
 INC		= -I$(PWD)/include -I$(PWD)/include/alglib -I$(PWD)/include/igraph
@@ -45,8 +45,8 @@ igraph:
 	tar zxvf $(IGRAPHDIR).tar.gz && \
 	cd $(IGRAPHDIR) && \
 	./configure --libdir=$(LIBDIR) --prefix=$(BUILDDIR) && \
-	$(MAKE) && \
-	$(MAKE) install #&& \
+	$(MAKE) MAKEFLAGS= && \
+	$(MAKE) install && \
 	cp $(BUILDDIR)/include/igraph/* $(INCLUDEDIR)/igraph/
 
 .PHONY: clean

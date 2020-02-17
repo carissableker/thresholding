@@ -52,8 +52,8 @@ int local_global_pruning(igraph_t& G,
 
 		  	// local threshold for v_id
 		  	k = mean(incident_weights) + alpha * stddev(incident_weights);
-		  	double ave = mean(incident_weights);
-		  	double sd = stddev(incident_weights);
+		  	//double ave = mean(incident_weights);
+		  	//double sd = stddev(incident_weights);
 
 		  	mean_k += k;
 		  	// test each incident edge against local threshold
@@ -127,6 +127,9 @@ int local_global_method(igraph_t& G,
     static const std::vector<double> alpha_vector = range(min_alpha, max_alpha, alpha_increment);
     int num_increments = alpha_vector.size();
 
+    std::cout << "Local-Global thresholding" << std::endl;
+    std::cout << "Number steps: " << num_increments << std::endl;
+
 	std::ofstream out;
     out.open(outfile_name.c_str());
 
@@ -134,8 +137,9 @@ int local_global_method(igraph_t& G,
     std::stringstream header;
     header << "alpha";
     header << "\tvertex-count\tedge-count";
-    header << "\tmean-k";
-    header << "\tconnected-component-count";
+	header << "\tdensity";
+	header << "\tmean-k";
+	header << "\tconnected-component-count";
     header << "\tlargest-cc-size\t2nd-largest-cc-size";
     header << "\t2nd-eigenvalue\talmost-disconnected-component-count";
     out << header.str();
@@ -146,12 +150,20 @@ int local_global_method(igraph_t& G,
 
     for (int i_alpha=0; i_alpha < num_increments; i_alpha++){
         alpha = alpha_vector[i_alpha];
+
+        std::cout << "Step: " << i_alpha << ", alpha: " << alpha << std::flush;
+
         double mean_k;
 
 	  	local_global_pruning(G, alpha, new_G, mean_k);
 
+	  	std::cout <<"\tmean_k: " << mean_k << std::endl;
+
 		igraph_integer_t E = igraph_ecount(&new_G);
     	igraph_integer_t V = igraph_vcount(&new_G);
+
+        double density = (double) E / ( 0.5 * V * (V -1) );
+
 
     	igraph_integer_t cc_count           = -1;
 		igraph_integer_t largest_cc_size    = -1;
@@ -175,12 +187,14 @@ int local_global_method(igraph_t& G,
         message << alpha;
         message << "\t" << V << "\t" << E;
         message << "\t" << mean_k;
+        message << "\t" << density;
         message << "\t" << cc_count;
         message << "\t" << largest_cc_size   << "\t" << largest2_cc_size;
         message << "\t" << second_eigenvalue << "\t" << nearly_disconnected_components;
         out << message.str();
         out << std::endl;
     }
+    std::cout << "\n------------------------------------------------\n";
 
     igraph_destroy(&new_G);
     igraph_destroy(&G_cc);

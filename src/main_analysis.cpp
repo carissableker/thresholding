@@ -17,7 +17,6 @@
 #include <string>     // getline
 #include <csignal>    // signal
 
-
 #include "utils.h"
 #include "math_ext.h"
 #include "igraph_ext.h"
@@ -26,7 +25,6 @@
 #include "spectral_methods.h"
 #include "scale_free.h"
 #include "maximal_cliques.h"
-#include "clustering_coefficient.h"
 #include "local_global.h"
 #include "significance.h"
 #include "local_rank.h"
@@ -66,7 +64,7 @@ int thresholdAnalysis(std::string& outfile_prefix,
 
     ///////////////////////////////////////////////////////////////////////
     // local-global (guzzi2014, rank)
-    if(methods.find(6)!=methods.end()){
+    if(methods.find(3)!=methods.end()){
         outfile_name = outfile_prefix + "local_global.txt";
         local_global_method(G,
                      min_alpha,
@@ -75,20 +73,11 @@ int thresholdAnalysis(std::string& outfile_prefix,
                      windowsize,
                      minimumpartitionsize,
                      outfile_name);
+        methods.erase(3);
     }
 
-    ///////////////////////////////////////////////////////////////////////////
-    // Type I error (false positive rate) and
-    // Type II error (false negative rate) control
-    // only for PearsonCC
-    // Have to have n - number of samples (not number of variables)
-    if(methods.find(7)!=methods.end()){
-        outfile_name = outfile_prefix + "statistical_errors.txt";
-        control_statistical_errors(significance_alpha,
-                                  num_samples,
-                                  E,
-                                  bonferroni_corrected,
-                                  outfile_name);
+    if (methods.size() == 0){
+        return 0;
     }
 
     ///////////////////////////////////////////////////////////////////////
@@ -121,6 +110,7 @@ int thresholdAnalysis(std::string& outfile_prefix,
     double t;
     static const std::vector<double> t_vector = range(l, u, increment);
     int num_increments = t_vector.size();
+    std::cout << "Iterative thresholding\n";
     std::cout << "Number steps: " << num_increments << std::endl;
 
     // Initialise necessary stuff
@@ -149,6 +139,29 @@ int thresholdAnalysis(std::string& outfile_prefix,
     igraph_real_t clustering_coefficient    = std::nan("");
     igraph_real_t clustering_coefficient_r  = std::nan("");
 
+
+    ///////////////////////////////////////////////////////////////////////
+    // if methods includes clustering coefficient,
+    // then need a copy of G to threshold
+    // rewiring at each threshold takes longer (?)
+    igraph_t G_random;
+    if (methods.find(7) !=methods.end()){
+        igraph_copy(&G_random, &G);
+
+        // igraph rewire loses edge weights,
+        // need to save them and reassign back ()
+        igraph_rewire(&G_random, 3*E, IGRAPH_REWIRING_SIMPLE);
+
+        igraph_vector_t edge_weights;
+        igraph_vector_init(&edge_weights, E);
+
+        igraph_cattribute_EANV(&G, "weight", igraph_ess_all(IGRAPH_EDGEORDER_ID), &edge_weights);
+        igraph_cattribute_EAN_setv(&G_random, "weight", &edge_weights);
+
+        igraph_vector_destroy(&edge_weights);
+    }
+
+
     for(int i_t=0; i_t < num_increments; i_t++){
         t = t_vector[i_t];
 
@@ -156,14 +169,17 @@ int thresholdAnalysis(std::string& outfile_prefix,
 
         // Threshold step
         int threshold_status = threshold_graph(t, G);
+        V = igraph_vcount(&G);
+        E = igraph_ecount(&G);
 
-        // 1 = all edges removed, stop
+
         if(threshold_status == 1){
+            // 1 = all edges removed, stop
             std::cout <<" Graph is empty, finished. " << std::flush;
             break;
         }
-        // 3 = no edges removed, only skip if not first iteration
         else if( threshold_status == 3){
+            // 3 = no edges removed, only skip if not first iteration
             if(i_t > 0){
                 std::cout << " No edges removed, skipping. " << std::flush;
                 continue;
@@ -176,10 +192,6 @@ int thresholdAnalysis(std::string& outfile_prefix,
         else if(threshold_status == 2){
             // 2 = some edges are removed, keep going
             // make sure graph is large enough to continue
-            V = igraph_vcount(&G);
-            E = igraph_ecount(&G);
-
-            //std::cout << " " << V << " " << E;
             if ( (V < minimumpartitionsize) || (E < minimumpartitionsize) ){
                 //not large enough
                 std::cout <<" Graph too small, finished. " << std::flush;
@@ -196,19 +208,13 @@ int thresholdAnalysis(std::string& outfile_prefix,
         }
 
         ///////////////////////////////////////////////////////////////////////
-        // Methods to do by default
+        // Metrics to do by default
         ///////////////////////////////////////////////////////////////////////
 
-        ///////////////////////////////////////////////////////////////////////
         // Density
-        density        = 2.0 * (double) E / (V * (V -1));;
-        density_orig_V = 2.0 * E / orig_max_E;
+        density        = (double) E / ( 0.5 * V * (V -1) );
+        density_orig_V = (double) E / orig_max_E;
 
-        ///////////////////////////////////////////////////////////////////////
-        // Largest connected component sizes (basically percolation)
-        igraph_t G_cc;
-        largest_connected_component(G, G_cc, cc_count,
-                                    largest_cc_size, largest2_cc_size);
 
         ///////////////////////////////////////////////////////////////////////
         // Metrics to only do if requested
@@ -222,16 +228,37 @@ int thresholdAnalysis(std::string& outfile_prefix,
                     break;
                 }
 
+                else if( m==5 || m==8){
+                    ///////////////////////////////////////////////////////////////////////
+                    //  Largest connected component sizes
+                    // (basically percolation)
+                    igraph_t G_cc;
+                    largest_connected_component(G, G_cc, cc_count,
+                        largest_cc_size, largest2_cc_size);
+
+                    // Spectral Methods
+                    if(m == 5){
+                        if(largest_cc_size >= minimumpartitionsize){
+                            spectral_methods(G_cc,
+                               windowsize,
+                               minimumpartitionsize,
+                               second_eigenvalue,
+                               nearly_disconnected_components);
+                        }
+                    }
+                    igraph_destroy(&G_cc);
+                }
+
                 ///////////////////////////////////////////////////////////////
                 // Maximal Clique Number
-                if(m==1){
+                else if(m==4){
                     maximal_cliques(G, minimum_cliquesize,
                                     clique_count, clique_number);
                 }
 
                 ///////////////////////////////////////////////////////////////
                 // Scale free
-                else if(m==2){
+                else if(m==3){
                     igraph_plfit_result_t scale_free_result;
                     scale_free_test(G, V, scale_free_result);
                     scale_free_pvalue = scale_free_result.p;
@@ -239,20 +266,8 @@ int thresholdAnalysis(std::string& outfile_prefix,
                 }
 
                 ///////////////////////////////////////////////////////////////
-                // Spectral Methods
-                else if(m == 3){
-                    if(largest_cc_size >= minimumpartitionsize){
-                        spectral_methods(G_cc,
-                            windowsize,
-                            minimumpartitionsize,
-                            second_eigenvalue,
-                            nearly_disconnected_components);
-                    }
-                }
-
-                ///////////////////////////////////////////////////////////////
                 // Random Matrix Theory
-                else if(m==4){
+                else if(m==6){
                     random_matrix_theory(G,
                                          V,
                                          poi_chi_sq_stat,
@@ -263,20 +278,22 @@ int thresholdAnalysis(std::string& outfile_prefix,
 
                 ///////////////////////////////////////////////////////////////
                 // Clustering coefficient
-                else if(m==5){
-                    graph_clustering_coefficient(G,
-                                                 E,
-                                                 clustering_coefficient,
-                                                 clustering_coefficient_r);
+                else if(m==7){
+                    // plain clustering coefficient
+                    igraph_transitivity_undirected(&G, &clustering_coefficient, IGRAPH_TRANSITIVITY_NAN);
+
+                    // threshold G_random an d get random clustering coefficient
+                    int threshold_status2 = threshold_graph(t, G_random);
+                    //std::cout << "\n" <<  threshold_status2 << "   " << igraph_vcount(&G_random) << "  " << igraph_ecount(&G_random) << std::endl;
+                    igraph_transitivity_undirected(&G_random, &clustering_coefficient_r, IGRAPH_TRANSITIVITY_NAN);
                 }
 
                 ///////////////////////////////////////////////////////////////
                 else{
+                    std::cerr << "Unknown method " << m << std::endl;
                     continue;
                 }
         }
-
-        igraph_destroy(&G_cc);
 
         ///////////////////////////////////////////////////////////////////////
         // Make results into a string
@@ -298,7 +315,10 @@ int thresholdAnalysis(std::string& outfile_prefix,
         out << std::endl;
     }
 
-    igraph_destroy(&G);
+    if (methods.find(7) !=methods.end()){
+        igraph_destroy(&G_random);
+    }
+
     out.close();
     std::cout << "\nDone. \n" << std::endl;
     return 0;
@@ -326,13 +346,14 @@ void help(std::string prog_name){
     std::cerr <<  "      -c  --minimum_cliquesize     <value>     minimum size of maximal cliques in maximal clique count (default 5)\n";
     std::cerr <<  "      -m  --methods                <value>     comma separated list of methods (defaults to none)\n";
     std::cerr <<  "                                                   0 - all\n";
-    std::cerr <<  "                                                   1 - maximal cliques\n";
-    std::cerr <<  "                                                   2 - scale free\n";
-    std::cerr <<  "                                                   3 - spectral methods\n";
-    std::cerr <<  "                                                   4 - random matrix theory\n";
-    std::cerr <<  "                                                   5 - clustering coefficient\n";
-    std::cerr <<  "                                                   6 - local-global\n";
-    std::cerr <<  "                                                   7 - significance and power calculations (only valid for Pearson CC)\n";
+    std::cerr <<  "                                                   1 - significance and power calculations (only valid for Pearson CC)\n";
+    std::cerr <<  "                                                   2 - local-global\n";
+    std::cerr <<  "                                                   3 - scale free\n";
+    std::cerr <<  "                                                   4 - maximal cliques\n";
+    std::cerr <<  "                                                   5 - spectral methods\n";
+    std::cerr <<  "                                                   6 - random matrix theory\n";
+    std::cerr <<  "                                                   7 - clustering coefficient\n";
+    std::cerr <<  "                                                   8 - percolation\n";
     std::cerr <<  "      -h  --help                               print this help and exit\n";
     std::cerr <<  "\n";
     exit(0);
@@ -473,8 +494,8 @@ int main(int argc, char **argv){
     int windowsize=5;
     int minimumpartitionsize=10;
     int minimum_cliquesize=5;
-    double min_alpha=0;
-    double max_alpha=2;
+    double min_alpha=2;
+    double max_alpha=4;
     double alpha_increment=0.1;
 
     int num_samples=0;
@@ -552,6 +573,29 @@ int main(int argc, char **argv){
     std::cout << "threshold increment:   "  << increment << "\n";
     std::cout << "------------------------------------------------\n";
 
+
+
+    ///////////////////////////////////////////////////////////////////////////
+    // Type I error (false positive rate) and
+    // Type II error (false negative rate) control
+    // only for PearsonCC
+    // Have to have n - number of samples (not number of variables)
+    if(methods.find(1)!=methods.end()){
+        std::string outfile_name;
+        outfile_name = outfile_prefix + "statistical_errors.txt";
+        control_statistical_errors(significance_alpha,
+                                  num_samples,
+                                  0, //E
+                                  bonferroni_corrected,
+                                  outfile_name);
+        methods.erase(1);
+    }
+
+
+    if (methods.size() == 0){
+        return 0;
+    }
+
     // turn on attribute handling
     // for igraph to handle edge weights
     igraph_i_set_attribute_table(&igraph_cattribute_table);
@@ -578,6 +622,8 @@ int main(int argc, char **argv){
                                significance_alpha,
                                bonferroni_corrected,
                                methods);
+
+    igraph_destroy(&G);
     return status;
 }
 
