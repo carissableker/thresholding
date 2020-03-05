@@ -64,7 +64,7 @@ int thresholdAnalysis(std::string& outfile_prefix,
 
     ///////////////////////////////////////////////////////////////////////
     // local-global (guzzi2014, rank)
-    if(methods.find(3)!=methods.end()){
+    if(methods.find(2)!=methods.end()){
         outfile_name = outfile_prefix + "local_global.txt";
         local_global_method(G,
                      min_alpha,
@@ -102,7 +102,7 @@ int thresholdAnalysis(std::string& outfile_prefix,
     header << "\tmaximal-clique-count\tclique-number";
     header << "\tpoisson-chi2\tpoisson-pvalue";
     header << "\tgoe-chi2\tgoe-pvalue";
-    header << "\tscale-free-KS\tscale-free-KS-p-value";
+    header << "\tscale-free-KS\tscale-free-KS-p-value\tscale-free-alpha";
     out << header.str();
     out << std::endl;
 
@@ -135,6 +135,8 @@ int thresholdAnalysis(std::string& outfile_prefix,
 
     double  scale_free_pvalue               = std::nan("");
     double  scale_free_KS                   = std::nan("");
+    double  scale_free_xmin                 = std::nan("");
+    double  scale_free_alpha                = std::nan("");
 
     igraph_real_t clustering_coefficient    = std::nan("");
     igraph_real_t clustering_coefficient_r  = std::nan("");
@@ -165,7 +167,7 @@ int thresholdAnalysis(std::string& outfile_prefix,
     for(int i_t=0; i_t < num_increments; i_t++){
         t = t_vector[i_t];
 
-        std::cout << "\nStep: " << i_t << ", Threshold: " << t << std::flush;
+        std::cout << "\nStep: " << i_t +1  << ", Threshold: " << t << std::flush;
 
         // Threshold step
         int threshold_status = threshold_graph(t, G);
@@ -263,6 +265,8 @@ int thresholdAnalysis(std::string& outfile_prefix,
                     scale_free_test(G, V, scale_free_result);
                     scale_free_pvalue = scale_free_result.p;
                     scale_free_KS = scale_free_result.D;
+                    scale_free_xmin = scale_free_result.xmin;
+                    scale_free_alpha = scale_free_result.alpha;
                 }
 
                 ///////////////////////////////////////////////////////////////
@@ -311,6 +315,7 @@ int thresholdAnalysis(std::string& outfile_prefix,
         message << "\t" << poi_chi_sq_stat   << "\t" << poi_chi_sq_pvalue;
         message << "\t" << goe_chi_sq_stat   << "\t" << goe_chi_sq_pvalue;
         message << "\t" << scale_free_KS     << "\t" << scale_free_pvalue;
+        message << "\t" << scale_free_alpha;
         out << message.str();
         out << std::endl;
     }

@@ -158,7 +158,7 @@ bin_start bin_end bin_count
 -0.97000  -0.96000  5813
 ```
 
-![example-histogram](./doc/figures/ecoliGraph-edge-hist.svg?raw=true "Example histogram")
+![example-histogram](./doc/figures/HumanCellCycle.edge.svgraw=true "Example histogram")
 
 
 This graph has already been thresholded at 0.5 for speed and file size.

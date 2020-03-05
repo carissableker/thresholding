@@ -128,7 +128,7 @@ int local_global_method(igraph_t& G,
     int num_increments = alpha_vector.size();
 
     std::cout << "Local-Global thresholding" << std::endl;
-    std::cout << "Number steps: " << num_increments << std::endl;
+    std::cout << "Number steps: " << num_increments <<"\n" << std::endl;
 
 	std::ofstream out;
     out.open(outfile_name.c_str());
@@ -151,7 +151,7 @@ int local_global_method(igraph_t& G,
     for (int i_alpha=0; i_alpha < num_increments; i_alpha++){
         alpha = alpha_vector[i_alpha];
 
-        std::cout << "Step: " << i_alpha << ", alpha: " << alpha << std::flush;
+        std::cout << "Step: " << i_alpha +1 << ", alpha: " << alpha << std::flush;
 
         double mean_k;
 

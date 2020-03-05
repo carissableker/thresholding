@@ -85,7 +85,7 @@ int threshold_graph(double t, igraph_t &G){
 
         // remove edges
         igraph_delete_edges(&G, igraph_ess_vector(&edge_indices));
-        std::cout << " Removed " << igraph_vector_size(&edge_indices) << " edges and ";
+        //std::cout << " Removed " << igraph_vector_size(&edge_indices) << " edges and ";
 
         // clean up
         igraph_vector_destroy(&edge_indices);
@@ -109,7 +109,7 @@ int threshold_graph(double t, igraph_t &G){
             // remove them
             igraph_delete_vertices(&G, igraph_vss_vector(&vertex_indices));
         }
-        std::cout << igraph_vector_size(&vertex_indices) << " vertices. " << std::flush;
+        //std::cout << igraph_vector_size(&vertex_indices) << " vertices. " << std::flush;
 
         // clean up
         igraph_vector_destroy(&vertex_degrees);
@@ -120,7 +120,7 @@ int threshold_graph(double t, igraph_t &G){
     }
     // last option is no edges to remove, don't change G, so do nothing
     else if(igraph_vector_size(&edge_indices) == 0){
-        std::cout << " Removed 0 edges and 0 vertices. ";
+        //std::cout << " Removed 0 edges and 0 vertices. ";
 
         // clean up
         igraph_vector_destroy(&edge_indices);

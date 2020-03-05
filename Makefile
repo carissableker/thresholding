@@ -2,7 +2,7 @@ CC = g++
 LIBS	= -ligraph
 LIBDIRS	= -L/usr/local/lib -L$(PWD)/lib
 INC		= -I$(PWD)/include -I$(PWD)/include/alglib -I$(PWD)/include/igraph
-FLAGS	= -std=c++11 -g -Wl,-rpath=$(PWD)/lib
+FLAGS	= -std=c++11 -g -Wl,-rpath=$(PWD)/lib -Wl,-z,now
 
 PROG1   = $(PWD)/src/main_analysis.cpp
 TARGET1 = $(PWD)/bin/analysis
@@ -34,7 +34,7 @@ $(TARGET1): $(OBJECTS) $(PROG1)
 $(TARGET2): $(OBJECTS) $(PROG2)
 	$(CC) -o $@ $^  $(FLAGS) $(INC) $(LIBDIRS) $(LIBS)
 
-$(BUILDDIR)/%.o: $(SRCDIR)/%.$(SRCEXT)  igraph
+$(BUILDDIR)/%.o: $(SRCDIR)/%.$(SRCEXT)  #igraph
 	@mkdir -p $(BUILDDIR)
 	$(CC) -c -o $@ $< $(FLAGS) $(INC) $(LIBDIRS) $(LIBS)
 
