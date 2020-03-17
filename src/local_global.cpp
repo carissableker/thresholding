@@ -131,7 +131,12 @@ int local_global_method(igraph_t& G,
     std::cout << "Number steps: " << num_increments <<"\n" << std::endl;
 
 	std::ofstream out;
-    out.open(outfile_name.c_str());
+    out.open(outfile_name.c_str(), std::ofstream::out);
+    // is it open
+    if (out.fail()) {
+        std::cerr << "Error opening file for writing: " << outfile_name << "\n";
+        return 0;
+    }
 
     // output header
     std::stringstream header;

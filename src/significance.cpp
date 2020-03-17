@@ -19,7 +19,12 @@ double control_statistical_errors(double significance_alpha,
 
 
 	std::ofstream out;
-    out.open(outfile_name.c_str());
+    out.open(outfile_name.c_str(), std::ofstream::out);
+    // is it open
+    if (out.fail()) {
+        std::cerr << "Error opening file for writing: " << outfile_name << "\n";
+        return 0;
+    }
 
 	///////////////////////////////////////////////////////////////////////
 	// Control Type I

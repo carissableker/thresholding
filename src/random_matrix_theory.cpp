@@ -1,19 +1,19 @@
 #include "random_matrix_theory.h"
 
-int random_matrix_theory(igraph_t& G, 
-                         igraph_integer_t &V, 
-                         double  &poi_chi_sq_stat, 
-                         double  &goe_chi_sq_stat, 
-                         double  &poi_chi_sq_pvalue, 
+int random_matrix_theory(igraph_t& G,
+                         igraph_integer_t &V,
+                         double  &poi_chi_sq_stat,
+                         double  &goe_chi_sq_stat,
+                         double  &poi_chi_sq_pvalue,
                          double  &goe_chi_sq_pvalue
                          ){
 
     igraph_matrix_t A;
     igraph_matrix_init(&A, V, V);
     get_weighted_adjacency(G, A);
-    
+
     igraph_vector_t eigenvalues;
-    igraph_vector_init(&eigenvalues, V); // eigenvalues will go in here. 
+    igraph_vector_init(&eigenvalues, V); // eigenvalues will go in here.
 
     igraph_lapack_dsyevr(&A, IGRAPH_LAPACK_DSYEV_ALL, 0, 0, 0, 0, 0, 0.0, &eigenvalues, NULL, 0);
 
@@ -41,7 +41,7 @@ int random_matrix_theory(igraph_t& G,
     }
 
     double n = eigenvalues_sorted.size();
- 
+
     // CDF
     int number_fit_points = floor(0.75*eigenvalues_sorted.size()); //TODO
     double cdf_increment = (eigenvalues_sorted.back() - eigenvalues_sorted[0])/number_fit_points;
@@ -50,9 +50,9 @@ int random_matrix_theory(igraph_t& G,
     std::vector<double> cdf = ecdf(eigenvalues_sorted, t);
 
     // Find smooth distribution of eigenvalues by fitting a spline to the CDF and evaluating at eigenvalues values
-    std::vector<double> new_cdf = spline(t, cdf, eigenvalues_sorted); 
+    std::vector<double> new_cdf = spline(t, cdf, eigenvalues_sorted);
 
-    // NNSD 
+    // NNSD
     std::vector<double> NNSD;
     rolling_difference(new_cdf, NNSD, 1);
 
@@ -70,12 +70,12 @@ int random_matrix_theory(igraph_t& G,
     // https://github.com/spficklin/RMTGeneNet/blob/master/threshold/methods/RMTThreshold.cpp
     // https://www.statisticshowto.datasciencecentral.com/goodness-of-fit-test/
     // https://static-content.springer.com/esm/art%3A10.1186%2F1471-2105-8-299/MediaObjects/12859_2006_1671_MOESM3_ESM.pdf
-    
+
     std::sort(NNSD.begin(), NNSD.end());
 
     // Need to discretise continuous NNSD
     // Use histogram equalization:
-    // observed bin frequency, will always be 5 (execpt for last bin)
+    // observed bin frequency, will always be 5 (except for last bin)
 
     double bin_start = 0;
     double bin_end = 0;
@@ -86,7 +86,7 @@ int random_matrix_theory(igraph_t& G,
 
     float observed_count = 5;
     double expected_count;
-    
+
     int no_bins = 0;
     int NNSD_i = 0; // index of NNSD
     while(NNSD_i < NNSD_size){ // don't know how many bins yet, but going untill end of NNSD
@@ -103,9 +103,9 @@ int random_matrix_theory(igraph_t& G,
                 this_bin_count++;
                 }
         }
-        
+
         if(this_bin_count == observed_count){
-            // either still in the range of values, 
+            // either still in the range of values,
             // or reached end but divisivle by 5
             if(h == NNSD_size){
                 bin_end = NNSD[h-1];
@@ -120,7 +120,7 @@ int random_matrix_theory(igraph_t& G,
             no_bins++;
             NNSD_i = h;
         }
-        else{ 
+        else{
             // reached end of last bins without making it until frequency of 5
             // so add this to the previous bin
             // bin start stays the same, bin_end is last value
@@ -134,12 +134,12 @@ int random_matrix_theory(igraph_t& G,
     }
 
     int dof = no_bins -1;
-    
+
     if(dof > 1){
 
         poi_chi_sq_stat = 0;
         goe_chi_sq_stat = 0;
-        
+
         for(int b=0; b<no_bins; b++){
 
             bin_start = bin_start_vector[b];
@@ -148,7 +148,7 @@ int random_matrix_theory(igraph_t& G,
 
             //std::cout << b << "\t" << bin_start << "\t " << bin_end << "\t " << observed_count << "\t ";
 
-            // If Poisson, then 
+            // If Poisson, then
             expected_count = NNSD_size * ( poisson(bin_start, bin_end) );
             poi_chi_sq_stat += pow(observed_count - expected_count, 2) / expected_count;
             //std::cout << expected_count << "\t ";

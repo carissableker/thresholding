@@ -88,7 +88,14 @@ int thresholdAnalysis(std::string& outfile_prefix,
     // ready the output file
     outfile_name = outfile_prefix + "iterative.txt";
     std::ofstream out;
-    out.open(outfile_name.c_str());
+    out.open(outfile_name.c_str(), std::ofstream::out);
+    // is it open
+    if (out.fail()) {
+        std::cerr << "Error opening file for writing: " << outfile_name << "\n";
+        return 0;
+    }
+
+
 
     // output header
     std::stringstream header;
@@ -294,7 +301,7 @@ int thresholdAnalysis(std::string& outfile_prefix,
 
                 ///////////////////////////////////////////////////////////////
                 else{
-                    std::cerr << "Unknown method " << m << std::endl;
+                    //std::cerr << "Unknown method " << m << std::endl;
                     continue;
                 }
         }
@@ -569,6 +576,15 @@ int main(int argc, char **argv){
     std::string str_pid = get_str_pid();
     outfile_prefix = outfile_prefix + "." + str_pid + ".";
 
+    // check that output file path exists
+    std::ofstream out;
+    out.open(outfile_prefix.c_str(), std::ofstream::out);
+    // is it open
+    if (out.fail()) {
+        std::cerr << "Error opening file for writing: " << outfile_prefix << "\n";
+        return 0;
+    }
+
     std::cout << "\n";
     std::cout << "------------------------------------------------\n";
     std::cout << "input graph file:      "  << infile << "\n";
@@ -577,7 +593,6 @@ int main(int argc, char **argv){
     std::cout << "upper threshold:       "  << u << "\n";
     std::cout << "threshold increment:   "  << increment << "\n";
     std::cout << "------------------------------------------------\n";
-
 
 
     ///////////////////////////////////////////////////////////////////////////
@@ -595,7 +610,6 @@ int main(int argc, char **argv){
                                   outfile_name);
         methods.erase(1);
     }
-
 
     if (methods.size() == 0){
         return 0;
