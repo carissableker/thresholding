@@ -24,7 +24,7 @@ outgraph=$3
 if [[ -f $outgraph ]]
 	then
 		echo "Error: $outgraph already exists. Not proceeding. "
-		exit 1
+		exit 0
 fi
 
 # threshold iwel, leaving header in place
