@@ -23,7 +23,7 @@ outgraph=$3
 # if it does, complain and exit
 if [[ -f $outgraph ]]
 	then
-		echo "Error: $outgraph already exists. Not proceeding. "
+		echo "$outgraph already exists. Not proceeding. "
 		exit 0
 fi
 
