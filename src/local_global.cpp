@@ -142,8 +142,8 @@ int local_global_method(igraph_t& G,
     std::stringstream header;
     header << "alpha";
     header << "\tvertex-count\tedge-count";
-	header << "\tdensity";
 	header << "\tmean-k";
+	header << "\tdensity";
 	header << "\tconnected-component-count";
     header << "\tlargest-cc-size\t2nd-largest-cc-size";
     header << "\t2nd-eigenvalue\talmost-disconnected-component-count";

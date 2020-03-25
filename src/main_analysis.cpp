@@ -73,7 +73,7 @@ int thresholdAnalysis(std::string& outfile_prefix,
                      windowsize,
                      minimumpartitionsize,
                      outfile_name);
-        methods.erase(3);
+        methods.erase(2);
     }
 
     if (methods.size() == 0){
@@ -159,7 +159,7 @@ int thresholdAnalysis(std::string& outfile_prefix,
 
         // igraph rewire loses edge weights,
         // need to save them and reassign back ()
-        igraph_rewire(&G_random, 3*E, IGRAPH_REWIRING_SIMPLE);
+        igraph_rewire(&G_random, E, IGRAPH_REWIRING_SIMPLE);
 
         igraph_vector_t edge_weights;
         igraph_vector_init(&edge_weights, E);
@@ -506,7 +506,7 @@ int main(int argc, char **argv){
     int windowsize=5;
     int minimumpartitionsize=10;
     int minimum_cliquesize=5;
-    double min_alpha=2;
+    double min_alpha=0;
     double max_alpha=4;
     double alpha_increment=0.1;
 

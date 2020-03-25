@@ -31,9 +31,7 @@ fi
 newne=(`awk -v t="$t" -v outgraph="$outgraph" -F$"\t" '$3 >= t || $3 <= -t {{print $0 > outgraph}  {V[$1]++ V[$2]++} {e++}} END {print length(V), e}' $ingraph`)
 
 # output success
-echo "
-		Thresholded file at $outgraph. Threshold using t = |$t|.
-		Resultant graph has ${newne[0]} vertices and ${newne[1]} edges.
-		"
+echo " Thresholded file at $outgraph. Threshold using t = |$t|. "
+echo " Resultant graph has ${newne[0]} vertices and ${newne[1]} edges. "
 
 
