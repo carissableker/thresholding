@@ -37,7 +37,7 @@ bin counts, and uses Python3 (including seaborn, matplotlib, and pandas) to prod
 
 ### Jupyter notebook
 
-TODO
+The notebook uses the module `combine_analysis_results.py` (supplied) as well as seaborn, matplotlib, and pandas. 
 
 ---
 ## Usage
@@ -71,14 +71,14 @@ For analysis of the graph, run the `analysis` program.
 ```bash
 $ ./bin/analysis --help
 
-    Usage:
-    ./bin/analysis [-OPTIONS]... <GRAPH FILE PATH> <OUTPUT FILE PATH>
+    Usage: 
+    ./bin/analysis [-OPTIONS]... <GRAPH FILE PATH> <OUTPUT FILE PATH> 
 
-    Graph has to be in .ncol format.
-    Output file path is the prefix to the results files, which will be of the form:
+    Graph has to be in .ncol format. 
+    Output file path is the prefix to the results files, which will be of the form: 
         <OUTPUT FILE PATH>.pid.<method_name>.txt
 
-    Options:
+    Options: 
       -l  --lower                  <value>     lower bound on thresholds to test (default 0.5)
       -u  --upper                  <value>     upper bound on thresholds to test (default 0.99)
       -i  --increment              <value>     threshold increment (default 0.01)
@@ -89,22 +89,23 @@ $ ./bin/analysis --help
       -c  --minimum_cliquesize     <value>     minimum size of maximal cliques in maximal clique count (default 5)
       -m  --methods                <value>     comma separated list of methods (defaults to none)
                                                    0 - all
-                                                   1 - maximal cliques
-                                                   2 - scale free
-                                                   3 - spectral methods
-                                                   4 - random matrix theory
-                                                   5 - clustering coefficient
-                                                   6 - local-global
-                                                   7 - significance and power calculations (only valid for Pearson CC)
+                                                   1 - significance and power calculations (only valid for Pearson CC)
+                                                   2 - local-global
+                                                   3 - scale free
+                                                   4 - maximal cliques
+                                                   5 - spectral methods
+                                                   6 - random matrix theory
+                                                   7 - clustering coefficient
+                                                   8 - percolation
       -h  --help                               print this help and exit
 ```
 
 ### 2. Analysis of results
 
 The output of graph analysis is a number of files containing statistics and
-metrics of the graph. A Python3 Jupyter notebook is supplied to
-interactively analyse these files. This notebook can be found at ./TODO
-
+metrics of the graph. A Python3 module is supplied to
+interactively analyse these files. Usage can be seen in the notebook 
+found at ./example//HumanCellCycleSubset-ThresholdNotebook.ipynb
 
 ### 3. Threshold
 
@@ -137,39 +138,86 @@ $ ./bin/threshold  --help
 
 ---
 ## Example:
+This example uses the human cell cycle data from Stanford, available at [Transcriptional regulation and function in the human cell cycle](http://www-sequence.stanford.edu/human_cell_cycle/). The graph is the probe-wise Pearson correlation of the normalized expression data, across the 13 time points (n=13). Since the original graph has over 23 million edges, the version used here is a random subset of 250 000 edges. 
 
+Let's download the example graph:
 ```bash
 $ cd example
+$ wget --no-check-certificate 'https://docs.google.com/uc?export=download&id=FILEID' -O HumanCellCycleSubset.ncol
 $ ls
 ecoliGraph.ncol
 ```
 
-
-
-
+First we can take a look at the edge weight distribution:
 ```bash
-$ ../bin/edge_weight_histogram ecoliGraph.ncol ecoliGraph-edge-hist 0.01
-Edge distribution at ecoliGraph-edge-hist.tsv and ecoliGraph-edge-hist.svg
-$ head ecoliGraph-edge-hist.tsv
-bin_start bin_end bin_count
--1.00000  -0.99000  974
--0.99000  -0.98000  2718
--0.98000  -0.97000  4375
--0.97000  -0.96000  5813
+$ ../bin/edge_weight_histogram HumanCellCycleSubset.ncol HumanCellCycleSubset-edgehist 0.01
+Edge distribution at HumanCellCycleSubset-edgehist.tsv and HumanCellCycleSubset-edgehist.svg
+$ head HumanCellCycleSubset-edgehist.tsv
+bin_start	bin_end	bin_count
+-0.96000	-0.95000	1
+-0.94000	-0.93000	1
+-0.93000	-0.92000	2
+-0.92000	-0.91000	8
+-0.91000	-0.90000	6
 ```
 
-![example-histogram](./doc/figures/HumanCellCycle.edge.svgraw=true "Example histogram")
+![example-histogram](./doc/figures/ HumanCellCycleSubset-edgehist.svg)
 
-
-This graph has already been thresholded at 0.5 for speed and file size.
-
+Now lets do the analysis of our graph. To make it time efficient, lets do percolation, significance and power, and scale-free. By default it will also calculate density at each threshold. We'll start at a lower threshold limit of 0.6, and leave the increment at the default of 0.01. Remember to give the number of samples using `-n`. 
 
 ```bash
+../bin/analysis HumanCellCycleSubset.ncol HumanCellCycleSubset-result -l0.6 -m1,3,8 -n13
 
+------------------------------------------------
+input graph file:      HumanCellCycleSubset.ncol
+output file prefix:    HumanCellCycleSubset-result.3932.
+lower threshold:       0.6
+upper threshold:       0.99
+threshold increment:   0.01
+------------------------------------------------
+Loading graph ... done.
+Number vertices:  7077
+Number edges:     250000  (maximum possible number edges 25038426)
+------------------------------------------------
+
+Iterative thresholding
+Number steps: 40
+
+Step: 1, Threshold: 0.6		Vertices: 6639	Edges: 15905
+Step: 2, Threshold: 0.61		Vertices: 6514	Edges: 14532
+Step: 3, Threshold: 0.62		Vertices: 6365	Edges: 13228
+Step: 4, Threshold: 0.63		Vertices: 6212	Edges: 12037
+Step: 5, Threshold: 0.64		Vertices: 6046	Edges: 10852
+.
+.
+.
+Step: 31, Threshold: 0.9		Vertices: 81	Edges: 41
+Step: 32, Threshold: 0.91		Vertices: 47	Edges: 24
+Step: 33, Threshold: 0.92		Vertices: 20	Edges: 10
+Step: 34, Threshold: 0.93 Graph too small, finished. 
+Done. 
 ```
+
+Lets do spectral methds as well: 
 ```bash
-
+../bin/analysis HumanCellCycleSubset.ncol HumanCellCycleSubset-result -l0.6 -m5
 ```
+
+
+Now lets see what files were created:
+```bash
+$ ls
+HumanCellCycleSubset-result.3932.iterative.txt
+HumanCellCycleSubset-result.3932.statistical_errors.txt
+HumanCellCycleSubset-result.4152.iterative.txt
+```
+You can peruse these files yourself, or use the notebook to take a look. Open the notebook at ./example//HumanCellCycleSubset-ThresholdNotebook.ipynb and follow the instructions there. 
+
+Once you have decided on a threshold, you can use either `absolute_global_threshold` or `threshold`. Suppose we decide on a global threshold of 0.73 for our graph, then use:
+```bash
+$ ../bin/absolute_global_threshold  HumanCellCycleSubset.ncol 0.79  HumanCellCycleSubset-0.79.ncol
+```
+
 
 
 ---
