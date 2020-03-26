@@ -105,7 +105,7 @@ $ ./bin/analysis --help
 The output of graph analysis is a number of files containing statistics and
 metrics of the graph. A Python3 module is supplied to
 interactively analyse these files. Usage can be seen in the notebook 
-found at ./example//HumanCellCycleSubset-ThresholdNotebook.ipynb
+found at [./example/HumanCellCycleSubset-ThresholdNotebook.ipynb](./example/HumanCellCycleSubset-ThresholdNotebook.ipynb). 
 
 ### 3. Threshold
 
@@ -140,14 +140,6 @@ $ ./bin/threshold  --help
 ## Example:
 This example uses the human cell cycle data from Stanford, available at [Transcriptional regulation and function in the human cell cycle](http://www-sequence.stanford.edu/human_cell_cycle/). The graph is the probe-wise Pearson correlation of the normalized expression data, across the 13 time points (n=13). Since the original graph has over 23 million edges, the version used here is a random subset of 250 000 edges. 
 
-Let's download the example graph:
-```bash
-$ cd example
-$ wget --no-check-certificate 'https://docs.google.com/uc?export=download&id=FILEID' -O HumanCellCycleSubset.ncol
-$ ls
-ecoliGraph.ncol
-```
-
 First we can take a look at the edge weight distribution:
 ```bash
 $ ../bin/edge_weight_histogram HumanCellCycleSubset.ncol HumanCellCycleSubset-edgehist 0.01
@@ -161,7 +153,7 @@ bin_start	bin_end	bin_count
 -0.91000	-0.90000	6
 ```
 
-![example-histogram](./doc/figures/ HumanCellCycleSubset-edgehist.svg)
+![example-histogram](./doc/figures/HumanCellCycleSubset-edgehist.svg)
 
 Now lets do the analysis of our graph. To make it time efficient, lets do percolation, significance and power, and scale-free. By default it will also calculate density at each threshold. We'll start at a lower threshold limit of 0.6, and leave the increment at the default of 0.01. Remember to give the number of samples using `-n`. 
 
@@ -213,7 +205,7 @@ HumanCellCycleSubset-result.4152.iterative.txt
 ```
 You can peruse these files yourself, or use the notebook to take a look. Open the notebook at ./example//HumanCellCycleSubset-ThresholdNotebook.ipynb and follow the instructions there. 
 
-Once you have decided on a threshold, you can use either `absolute_global_threshold` or `threshold`. Suppose we decide on a global threshold of 0.73 for our graph, then use:
+Once you have decided on a threshold, you can use either `absolute_global_threshold` or `threshold`. Suppose we decide on a global threshold of 0.79 for our graph, then use:
 ```bash
 $ ../bin/absolute_global_threshold  HumanCellCycleSubset.ncol 0.79  HumanCellCycleSubset-0.79.ncol
 ```
