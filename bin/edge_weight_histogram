@@ -21,18 +21,18 @@ outtsv="$2.tsv"
 outsvg="$2.svg"
 
 # test if output files exists
-# if it does, complain and exit
+# if it does, skip making tsv
 if [[ -f $outtsv  ]]
 	then
-		echo "Error: $outtsv already exists. Not proceeding. "
-		exit 1
-fi
+		echo "$outtsv already exists. Making svg. "
+    else
+        # degree distribution
+        echo -e "bin_start\tbin_end\tbin_count" > $outtsv
+        awk -v width=$width '{ bin=int(($3+1)/width); \
+                               if(bin in hist){hist[bin]+=1}else{hist[bin]=1}; \
+                             }END{for (b in hist) printf "%2.5f\t%2.5f\t%i\n", b*width-1, b*width-1+width, hist[b]}' "$ingraph" | sort -k1 -g >> $outtsv
 
-# degree distribution
-echo -e "bin_start\tbin_end\tbin_count" > $outtsv
-awk -v width=$width '{ bin=int(($3+1)/width); \
-                       if(bin in hist){hist[bin]+=1}else{hist[bin]=1}; \
-                     }END{for (b in hist) printf "%2.5f\t%2.5f\t%i\n", b*width-1, b*width-1+width, hist[b]}' "$ingraph" | sort -k1 -g >> $outtsv
+fi
 
 # plot using python
 python `dirname $0`/plot_histogram $outtsv
