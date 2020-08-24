@@ -34,7 +34,7 @@ $(TARGET1): $(OBJECTS) $(PROG1)
 $(TARGET2): $(OBJECTS) $(PROG2)
 	$(CC) -o $@ $^  $(FLAGS) $(INC) $(LIBDIRS) $(LIBS)
 
-$(BUILDDIR)/%.o: $(SRCDIR)/%.$(SRCEXT)  #igraph
+$(BUILDDIR)/%.o: $(SRCDIR)/%.$(SRCEXT)  igraph
 	@mkdir -p $(BUILDDIR)
 	$(CC) -c -o $@ $< $(FLAGS) $(INC) $(LIBDIRS) $(LIBS)
 
