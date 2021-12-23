@@ -1,0 +1,18 @@
+% Repository components include
+% C++ threshold analysis code,
+% C++ threshold code,
+% Bash (and awk) threshold scripts,
+% Bash (awk and Python3) scripts to output an edge weight histogram, and
+% a Python3 Jupyter notebook to analyze results.
+% 
+% \subsection{User Instructions}
+% Repository usage is described in the repository's README file. 
+%  Specifics are provided for inputs, methods, parameters, bounds, and increments. Consider, for example, a human cell cycle graph from \cite{cho2001}. This graph was built from 13 time points of human gene expression data. It contains 7,077 vertices and thus 25,038,426 edges. To produce a histogram of its Pearson correlations, one can use the script, \verb+edge_weight_histogram+, which produces a tab-delimited file of bins/counts and the correlation histogram shown in  Figure \ref{fig:chthreshold:histogram}.
+% To analyze multiple thresholds one can invoke \verb+analysis+ to produce output metrics. These outputs which can be combined (across multiple restarts) and analyzed using the provided Jupyter notebook and module of custom Python functions. Once the user has decided on a threshold value, \verb+absolute_global_threshold+ can be used to perform simple thresholding or, if more options are desired, \verb+threshold+ is available. 
+% 
+% \begin{figure}[h]
+% \begin{center}
+% \includegraphics[width=0.7\textwidth]{figures/HumanCellCycle-edge.eps}
+% \caption{Sample Correlation Histogram} \label{fig:chthreshold:histogram}
+% \end{center}
+% \end{figure}
