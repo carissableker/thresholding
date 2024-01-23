@@ -143,6 +143,9 @@ $ ./bin/threshold  --help
 ## Example:
 This example uses the human cell cycle data from Stanford, available at [Transcriptional regulation and function in the human cell cycle](http://www-sequence.stanford.edu/human_cell_cycle/). The graph is the probe-wise Pearson correlation of the normalized expression data, across the 13 time points (n=13). Since the original graph has over 23 million edges, the version used here is a random subset of 250 000 edges. 
 
+The complete graph is avalible on Zenodo: 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.10532019.svg)](https://doi.org/10.5281/zenodo.10532019). 
+
 First we can take a look at the edge weight distribution:
 ```bash
 $ ../bin/edge_weight_histogram HumanCellCycleSubset.ncol HumanCellCycleSubset-edgehist 0.01
