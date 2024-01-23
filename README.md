@@ -1,5 +1,8 @@
 # Graph Thresholding
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.7614763.svg)](https://doi.org/10.5281/zenodo.7614763)
+
+
 Repository for thresholding code, based on dissertation research. We use
 a number of methods to analyse a weighted graph in order to suggest an
 optimal threshold for the graph.
