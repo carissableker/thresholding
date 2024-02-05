@@ -103,6 +103,27 @@ $ ./bin/analysis --help
       -h  --help                               print this help and exit
 ```
 
+The methods (`-m`) correspond to calculations required for the following approaches: 
+
+| Approach             | methods (`-m`)         | Description                          
+|----------------------|----|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| apeltsin                 | 8   | Implementation of the algorithm described in \cite{apeltsin2011} based on the number of edges and the number of vertices.                         
+| cc-inflection            | 8   | The point at which the size of largest connected component sharply inflects downwards.                                                                                                                                           |
+| density-min              | 8   | The threshold that minimizes the density from \cite{aoki2007}.                                                                                                                                                                   |
+| elo-clustering           | 7   | Smallest threshold at which the difference between the clustering coefficient of the graph and the clustering coefficient of a random counterpart graph is larger than the same difference at the next threshold \citep{elo2007} |
+| gupta-clustering         | 7   | Threshold at which the clustering coefficient sharply increases \cite{gupta2006}                                                                                                                                                 |
+| mcr-2                    | 4   | Maximal clique 2 described in \cite{borate2009}.                                                                                                                                                                                 |
+| mcr-3                    | 4   | Maximal clique 3 described in \cite{borate2009}.                                                                                                                                                                                 |
+| mcr-max                  | 4   | Generalization of maximal clique 2 and maximal clique 3.                                                                                                                                                                         |
+| scale-free               | 3   | Based on WCGNA but this method uses maximum likelihood to  determine $\gamma$                                                                                                                                                    |
+| single-component         | 8   | The highest threshold that guarantees a connected graph.                                                                                                                                                                         |
+| spectral-methods         | 5   | Implementation of the algorithm described in \cite{perkins2009}.                                                                                                                                                                 |
+| rmt                      | 6   | Implementation of the algorithm described in \cite{gibson2013,luo2007}                                                                                                                                                           |
+| whole-graph              | 8   | The highest threshold that guarantees all vertices remain in the graph.                                                                                                                                                          |
+| local-global             | 2   | Method of \cite{guzzi2014} but adapted for general weighted graphs instead of semantic similarity graphs.                                                                                                                        |
+| TypeI $\alpha$ | 1  | Given any value of $\alpha$ significance, calculates the minimum Pearson threshold to guarantee a Type I error rate of at most $\alpha$.                                                                                         |
+| Power $\beta$  | 1   | Given any value of $\beta$, calculates the minimum Pearson threshold to guarantee a Type II error rate of at most $1 - \beta$.                                                                                                   |
+
 ### 2. Analysis of results
 
 The output of graph analysis is a number of files containing statistics and
@@ -209,14 +230,15 @@ HumanCellCycleSubset-result.3932.iterative.txt
 HumanCellCycleSubset-result.3932.statistical_errors.txt
 HumanCellCycleSubset-result.4152.iterative.txt
 ```
+
+Each of the `*.iteractive.txt` files correspond to an anlysis run (we ran `analysis` twice here). Additionally, a file `*.statistical_errors.txt` file was created with the results of the stattical analysis (`-m 1`, Power and TypeI thresholds), since the format of the output is different to the methods that are calculated using interactive thresholding. Note, the statistical methods will only work if the number of samples is also provided. 
+
 You can peruse these files yourself, or use the notebook to take a look. Open the notebook at ./example//HumanCellCycleSubset-ThresholdNotebook.ipynb and follow the instructions there. 
 
 Once you have decided on a threshold, you can use either `absolute_global_threshold` or `threshold`. Suppose we decide on a global threshold of 0.79 for our graph, then use:
 ```bash
 $ ../bin/absolute_global_threshold  HumanCellCycleSubset.ncol 0.79  HumanCellCycleSubset-0.79.ncol
 ```
-
-
 
 ---
 ## TODOs:
