@@ -14,8 +14,9 @@ import matplotlib.pyplot as plt
 
 
 
-def get_local_global_alpha_value(F, D_local_global):
+def get_local_global_alpha_value(F):
     all_dfs = []
+    D_local_global = {}
 
     for f in F:
         df = pd.read_csv(f, sep="\t", index_col=0)    
@@ -42,7 +43,7 @@ def get_local_global_alpha_value(F, D_local_global):
         
         D_local_global["alpha_max"] = a
         D_local_global["alpha_exist"] = a
-        return pd.DataFrame()
+        return pd.DataFrame(), D_local_global
     
     
     
@@ -74,7 +75,7 @@ def get_local_global_alpha_value(F, D_local_global):
         D_local_global["alpha_max"] = a
         D_local_global["alpha_exist"] = a
         
-    return df
+    return df, D_local_global
 
 def get_significance_t_values(F, D, alpha=0.05, min_power=0.8):
     
@@ -251,9 +252,9 @@ def get_interative_t_values(F, D, d_min_t={"general":0}):
 
 
 def get_result_per_prefix(prefix):
-    iterative_results = glob.glob(prefix + "*.iterative.txt")
-    significance_results = glob.glob(prefix + "*.statistical_errors.txt")
-    local_global_results = glob.glob(prefix + "*.local_global.txt")
+    iterative_results = glob.glob(prefix + "iterative.txt")
+    significance_results = glob.glob(prefix + ".statistical_errors.txt")
+    local_global_results = glob.glob(prefix + "local_global.txt")
     
     D = {}
     alpha = np.nan
